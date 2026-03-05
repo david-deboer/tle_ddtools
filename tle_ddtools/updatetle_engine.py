@@ -43,7 +43,7 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
             print(f"{td.text} - {tlefilename}:  {actual_href}")
             tle_url = path.join(base_url, actual_href)
             try:
-                tle_file = requests.get(tle_url, timeout=8)
+                tle_file = requests.get(tle_url, timeout=20)
             except Exception as e:
                 print(e)
                 continue
