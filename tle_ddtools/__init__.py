@@ -1,0 +1,16 @@
+# -*- mode: python; coding: utf-8 -*-
+# Copyright 2026 David R DeBoer
+# Licensed under the MIT license. See LICENSE file in the project root for details.
+
+
+"""Some TLE handling tools"""
+
+from importlib.metadata import version
+__version__ = version('tle_ddtools')
+
+EPOCH_FACTOR = 100.0
+REMAP_S = ["name", "international_designator", "classification", "ephemeris_type"]
+REMAP_EPOCH = {
+    'line1': ["arcdoy", "arcmodf", "epochmodf", "mean_motion_dot", "mean_motion_ddot", "bstar", "element_set_number"],  # arcdoy/modf are extra fields for dating TLE archival dates
+    'line2': ["inclination_deg", "raan_deg", "eccentricity", "argument_of_perigee_deg", "mean_anomaly_deg", "mean_motion_rev_per_day", "revolution_number_at_epoch"]
+}

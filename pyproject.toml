@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=59", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tle_ddtools"
+version = "0.2.0"
+authors = [{ name = "David DeBoer", email = "david.r.deboer@gmail.com" }]
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["TLE"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tle_ddtools*"]
+
+[tool.setuptools]
+script-files = ["scripts/tle_update.py"]
