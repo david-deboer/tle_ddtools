@@ -10,9 +10,6 @@ readme = "README.md"
 license = { text = "MIT" }
 keywords = ["TLE"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["tle_ddtools*"]
-
 [tool.setuptools]
+packages = { find = { where = ["."] } }
 script-files = ["scripts/tle_update.py"]
