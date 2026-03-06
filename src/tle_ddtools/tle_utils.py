@@ -162,14 +162,14 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
     else:
         starter = data
 
+    lower = epoch_doy_to_dt(limits[0])
+    lower = datetime(lower.year, lower.month, lower.day).strftime('%y%m%d')  # Round down to current day
+    upper = epoch_doy_to_dt(limits[1]) + timedelta(days=1)
+    upper = datetime(upper.year, upper.month, upper.day).strftime('%y%m%d')  # Round up to next day
     if output_file is None:
-        lower = epoch_doy_to_dt(limits[0])
-        lower = datetime(lower.year, lower.month, lower.day).strftime('%y%m%d')  # Round down to current day
-        upper = epoch_doy_to_dt(limits[1]) + timedelta(days=1)
-        upper = datetime(upper.year, upper.month, upper.day).strftime('%y%m%d')  # Round up to next day
-        output_file = join(base_dir, f"T{limits[0]:.0f}_{limits[1]:.2f}.npz")
+        output_file = join(base_dir, f"T{lower}_{upper}.npz")
     savez(output_file, data=starter, allow_pickle=True)
-    print(f"Concatenated {len(files)} files into {output_file} on top of starter with {len(starter)} unique satIDs from {lower} - {upper}")
+    print(f"Concatenated {len(files)} files into {output_file} onto previous {len(starter)} unique satIDs from {lower} - {upper}")
     if cleanup:
         if getsize(output_file) > maxsize:  # Only delete files if the output file size is bigger than the biggest, to avoid deleting everything in case of a bug
             from os import remove
