@@ -46,12 +46,14 @@ def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', ret
 
     """
     data = readdataz(filename)
+    limits = data['lim']
+    data = data['data']
     epoch_search_dt = parse_epoch(epoch_search)
     span_timedelta = timedelta(days=span_days)
     sdict = {k: i for i, k in enumerate(REMAP_S)}
     line1 = {k: i for i, k in enumerate(REMAP_EPOCH[0])}
     line2 = {k: i for i, k in enumerate(REMAP_EPOCH[1])}
-    print(f"Searching for TLEs with epoch within {span_days} days of {epoch_search} ({epoch_search_dt.isoformat()})")
+    print(f"Searching for TLEs with epoch within {span_days} days of {epoch_search} ({epoch_search_dt.isoformat()}) = {limits[0]:.3f} to {limits[1]:.3f}")
 
     fnd = {}
     for satID, tle_dict in data.items():

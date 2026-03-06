@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from numpy import array, float32
 
 from . import REMAP_S, REMAP_EPOCH
-from .tle_utils import epoch_handle, parse_epoch
+from .tle_utils import epoch_convert, parse_epoch
 
 # =============================================================================
 # Public dataclass (optional convenience)
@@ -370,8 +370,8 @@ def remap(tles):
             else:
                 v = vf[Skey]
             remapped[key]['S'].append(v)
-        arcmodf, arcdoy = epoch_handle('f', val['archived'])
-        epochmodf, epoch_key = epoch_handle('f', vf['epoch']['raw'])
+        arcmodf, arcdoy = epoch_convert('f', val['archived'])
+        epochmodf, epoch_key = epoch_convert('f', vf['epoch']['raw'])
         lines = []
         for ll in sorted(REMAP_EPOCH.keys()):  # line1, line2
             aline = []
@@ -381,7 +381,7 @@ def remap(tles):
                 elif f == 'arcmodf':
                     aline.append(arcmodf)
                 elif f == 'epochmodf':
-                    aline.append(epochmodf)  # to get the epoch back use epoch_handle('r', [epochmodf, epoch_key])
+                    aline.append(epochmodf)  # to get the epoch back use epoch_convert('r', [epochmodf, epoch_key])
                 else:
                     aline.append(vf[f])
             lines.append(aline)
