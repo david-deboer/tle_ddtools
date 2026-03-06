@@ -15,4 +15,4 @@ keywords = ["TLE"]
 where = ["src"]
 
 [tool.setuptools]
-script-files = ["scripts/tle_ddupdate.py"]
+script-files = ["scripts/tle_ddupdate.py", "scripts/tle_ddconcat.py"]
