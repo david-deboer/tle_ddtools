@@ -180,7 +180,8 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
                 print(f"Removing {f}")
                 remove(f)
             if starter_is_file:
-                if starter_is_file == output_file:
+                from os.path import samefile
+                if samefile(starter_is_file, output_file):
                     print(f"Starter file {starter_is_file} overwritten.")
                 else:
                     print(f"Removing starter file {starter_is_file}")
