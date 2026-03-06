@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=59", "wheel"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,5 +11,5 @@ license = { text = "MIT" }
 keywords = ["TLE"]
 
 [tool.setuptools]
-packages = { find = { where = ["."] } }
+packages = { find = { where = ["tle_ddtools"] } }
 script-files = ["scripts/tle_update.py"]

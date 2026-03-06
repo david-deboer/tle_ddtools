@@ -13,8 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from numpy import array, float32
 
-from . import REMAP_S, REMAP_EPOCH
-from .tle_utils import epoch_convert, parse_epoch
+from . import REMAP_S, REMAP_TLE
+from .tle_utils import epoch_convert_fr_modf, epoch_doy_to_dt
 
 # =============================================================================
 # Public dataclass (optional convenience)
@@ -214,7 +214,7 @@ def parse_tle_lines(
     int_desig_piece = l1[14:17].strip() or None
 
     epoch_raw = l1[18:32].strip()
-    epoch_dt = parse_epoch(epoch_raw)
+    epoch_dt = epoch_doy_to_dt(epoch_raw)
 
     mean_motion_dot = float(l1[33:43].strip())
     mean_motion_ddot = _parse_implied_decimal(l1[44:52])
@@ -370,18 +370,18 @@ def remap(tles):
             else:
                 v = vf[Skey]
             remapped[key]['S'].append(v)
-        arcmodf, arcdoy = epoch_convert('f', val['archived'])
-        epochmodf, epoch_key = epoch_convert('f', vf['epoch']['raw'])
+        arcmodf, arcdoy = epoch_convert_fr_modf('f', val['archived'])
+        epochmodf, epoch_key = epoch_convert_fr_modf('f', vf['epoch']['raw'])
         lines = []
-        for ll in sorted(REMAP_EPOCH.keys()):  # line1, line2
+        for ll in sorted(REMAP_TLE.keys()):  # line1, line2
             aline = []
-            for f in REMAP_EPOCH[ll]:
+            for f in REMAP_TLE[ll]:
                 if f == 'arcdoy':
                     aline.append(arcdoy)
                 elif f == 'arcmodf':
                     aline.append(arcmodf)
                 elif f == 'epochmodf':
-                    aline.append(epochmodf)  # to get the epoch back use epoch_convert('r', [epochmodf, epoch_key])
+                    aline.append(epochmodf)  # to get the epoch back use epoch_convert_fr_modf('r', [epochmodf, epoch_key])
                 else:
                     aline.append(vf[f])
             lines.append(aline)

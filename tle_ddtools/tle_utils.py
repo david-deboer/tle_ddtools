@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from math import modf
 from numpy import array
-from . import EPOCH_FACTOR, REMAP_EPOCH
+from . import EPOCH_FACTOR
 
 def savedataz(data, filename='tle*.npz'):
     """
@@ -46,17 +46,17 @@ def readdataz(filename, fmt=False):
     for satID in data:
         for key in data[satID]:
             if key != 'S':
-                newarc = epoch_convert('r', (data[satID][key][0][0], data[satID][key][0][1]))
+                newarc = epoch_convert_fr_modf('r', (data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
                 maxarc = max(maxarc, newarc)
                 if fmt:
                     data[satID][key][0][arcdoy] = newarc
                     data[satID][key][0][arcmodf] = 0.0
-                    newepc = epoch_convert('r', (key, data[satID][key][0][epochmodf]))
+                    newepc = epoch_convert_fr_modf('r', (key, data[satID][key][0][epochmodf]))
                     data[satID][key][0][epochmodf] = newepc
     return {'lim': (minarc, maxarc), 'data': data}
 
-def epoch_convert(cmd, epoch):
+def epoch_convert_fr_modf(cmd, epoch):
     """
     cmd = 'f'orward or 'r'everse
     forward takes the epoch_raw float and splits into the epoch key int and the remainder
@@ -70,7 +70,7 @@ def epoch_convert(cmd, epoch):
     raise ValueError("epoch handler command must be 'f'orward or 'r'everse")
 
 
-def parse_epoch(epoch):
+def epoch_doy_to_dt(epoch):
     """
     Parse epoch YYDDD.DDDDDDDD -> UTC datetime (naive).
     Convention: 57-99 => 1957-1999, 00-56 => 2000-2056.
@@ -88,7 +88,7 @@ def parse_epoch(epoch):
     return day0 + timedelta(days=frac)
 
 
-def make_epoch(epoch: datetime) -> float:
+def epoch_dt_to_doy(epoch: datetime) -> float:
     """
     Convert a datetime to a TLE epoch YYDDD.ffffff.
 
@@ -163,9 +163,9 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
         starter = data
 
     if output_file is None:
-        lower = parse_epoch(limits[0])
+        lower = epoch_doy_to_dt(limits[0])
         lower = datetime(lower.year, lower.month, lower.day).strftime('%y%m%d')  # Round down to current day
-        upper = parse_epoch(limits[1]) + timedelta(days=1)
+        upper = epoch_doy_to_dt(limits[1]) + timedelta(days=1)
         upper = datetime(upper.year, upper.month, upper.day).strftime('%y%m%d')  # Round up to next day
         output_file = join(base_dir, f"T{limits[0]:.0f}_{limits[1]:.2f}.npz")
     savez(output_file, data=starter, allow_pickle=True)
@@ -180,7 +180,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
             print(f"Output file {output_file} is too small ({getsize(output_file)} bytes), skipping cleanup to avoid deleting everything in case of a bug.")
 
 
-def summary(filename='concatz.npz'):
+def summary(filename):
     """
     Print a summary of the TLE data in the given .npz file, including the distribution of epoch counts per satID.
     """
@@ -195,7 +195,7 @@ def summary(filename='concatz.npz'):
     for satID, tle_dict in data.items():
         num_epochs = len([k for k in tle_dict if k != 'S'])
         cnt_epochs.append(num_epochs)
-        list_epochs.extend([epoch_convert('r', (tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
+        list_epochs.extend([epoch_convert_fr_modf('r', (tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
         # if num_epochs > 10:
         #     print(f"{tle_dict['S'][0]} ({satID}): {num_epochs} epochs")
 

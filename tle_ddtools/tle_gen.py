@@ -27,14 +27,13 @@ Input record shape expected (per satnum):
   }
 }
 REMAP_S = ["name", "international_designator", "classification", "ephemeris_type"]
-REMAP_O = ['element_set_number']
 REMAP_EPOCH = [
     ["epochmodf", "mean_motion_dot", "mean_motion_ddot", "bstar", "element_set_number", "inclination_deg"],  # last is actually line 2
     ["raan_deg", "eccentricity", "argument_of_perigee_deg", "mean_anomaly_deg", "mean_motion_rev_per_day", "revolution_number_at_epoch"]
     ]
 """
-from . import REMAP_S, REMAP_EPOCH
-from .tle_utils import readdataz, epoch_handle, parse_epoch
+from . import S0, L1, L2
+from .tle_utils import readdataz, epoch_convert_fr_modf, epoch_doy_to_dt
 from .tle_formatter import write_tles_to_file
 from datetime import timedelta
 
@@ -48,11 +47,8 @@ def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', ret
     data = readdataz(filename)
     limits = data['lim']
     data = data['data']
-    epoch_search_dt = parse_epoch(epoch_search)
+    epoch_search_dt = epoch_doy_to_dt(epoch_search)
     span_timedelta = timedelta(days=span_days)
-    sdict = {k: i for i, k in enumerate(REMAP_S)}
-    line1 = {k: i for i, k in enumerate(REMAP_EPOCH[0])}
-    line2 = {k: i for i, k in enumerate(REMAP_EPOCH[1])}
     print(f"Searching for TLEs with epoch within {span_days} days of {epoch_search} ({epoch_search_dt.isoformat()}) = {limits[0]:.3f} to {limits[1]:.3f}")
 
     fnd = {}
@@ -61,13 +57,13 @@ def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', ret
         for epoch_key, tle_data in tle_dict.items():
             if epoch_key == 'S':
                 continue
-            this_epoch = epoch_handle('r', (epoch_key, tle_data[0][line1['epochmodf']]))
+            this_epoch = epoch_convert_fr_modf('r', (epoch_key, tle_data[0][L1['epochmodf']]))
             delta = abs(float(this_epoch) - float(epoch_search))
             if delta < closest['delta']:
                 closest = {'epoch': this_epoch, 'delta': delta, 'key': epoch_key}
-        this_epoch_dt = parse_epoch(closest['epoch'])
+        this_epoch_dt = epoch_doy_to_dt(closest['epoch'])
         this_span = this_epoch_dt - epoch_search_dt
-        offset_from_epoch = tle_data[0][line2['revolution_number_at_epoch']] / tle_data[1][line2['mean_motion_rev_per_day']]  # days
+        offset_from_epoch = tle_data[0][L2['revolution_number_at_epoch']] / tle_data[1][L2['mean_motion_rev_per_day']]  # days
         if offset_from_epoch > offset_warning:
             print(f"Note: offset from epoch is greater than {offset_warning} days: {offset_from_epoch:.2f}d")
         if abs(this_span) <= span_timedelta:
@@ -77,25 +73,25 @@ def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', ret
                 continue
             tle_data = tle_dict[closest['key']]
             international_designator = {
-                "year": tle_dict['S'][sdict['international_designator']][0:2].strip(),
-                "launch_number": tle_dict['S'][sdict['international_designator']][2:5].strip(),
-                "piece": tle_dict['S'][sdict['international_designator']][5:8].strip()
+                "year": tle_dict['S'][S0['international_designator']][0:2].strip(),
+                "launch_number": tle_dict['S'][S0['international_designator']][2:5].strip(),
+                "piece": tle_dict['S'][S0['international_designator']][5:8].strip()
             }
-            fnd[satID] = {"name": tle_dict['S'][sdict['name']],
+            fnd[satID] = {"name": tle_dict['S'][S0['name']],
                           "fields": {"satellite_number": satID,
                                      "international_designator": international_designator,
-                                     "classification": tle_dict['S'][sdict['classification']],
-                                     "ephemeris_type": tle_dict['S'][sdict['ephemeris_type']]
+                                     "classification": tle_dict['S'][S0['classification']],
+                                     "ephemeris_type": tle_dict['S'][S0['ephemeris_type']]
                                     }
                         }
-            for k, i in line1.items():
+            for k, i in L1.items():
                 if k == 'epochmodf':
                     fnd[satID]['fields']['epoch'] = closest['epoch']
                 elif k == 'element_set_number':
                     fnd[satID]['fields'][k] = int(tle_data[0][i])
                 else:
                     fnd[satID]['fields'][k] = float(tle_data[0][i])
-            for k, i in line2.items():
+            for k, i in L2.items():
                 fnd[satID]['fields'][k] = float(tle_data[1][i])
     if return_found:
         return fnd

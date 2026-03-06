@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from os import path
 from . import tle_parser, EPOCH_FACTOR
-from .tle_utils import make_epoch
+from .tle_utils import epoch_dt_to_doy
 from datetime import datetime
 
 
@@ -22,7 +22,7 @@ def make_tle_filename(tle_name):
 
 def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/NORAD/elements/', archived=None):
     if archived is None:
-        archived = make_epoch(datetime.now())
+        archived = epoch_dt_to_doy(datetime.now())
     series_rec = {}
     if group == '*':
         group = ''
@@ -55,7 +55,7 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
 
 def updatetle_dir(base_path='./tle', archived=None):
     if archived is None:
-        archived = make_epoch(datetime.now())
+        archived = epoch_dt_to_doy(datetime.now())
     from os.path import join
     from glob import glob
     tle_files = glob(join(base_path, '*.tle'))
