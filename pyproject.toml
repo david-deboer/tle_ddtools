@@ -7,9 +7,12 @@ name = "tle_ddtools"
 version = "0.2.0"
 authors = [{ name = "David DeBoer", email = "david.r.deboer@gmail.com" }]
 readme = "README.md"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
+description = "Tools for working with Two-Line Element (TLE) satellite data, including parsing, generation, and archival management."
 keywords = ["TLE"]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools]
-packages = { find = { where = ["tle_ddtools"] } }
-script-files = ["scripts/tle_update.py"]
+script-files = ["scripts/tle_ddupdate.py"]
