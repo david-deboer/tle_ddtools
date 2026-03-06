@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-from tle_ddtools import tle_utils
+from tle_ddtools.tle_utils import concatz
 import argparse
 
 ap = argparse.ArgumentParser(description="Concatenate TLE .npz files into a single file.")
@@ -10,4 +10,4 @@ ap.add_argument("-g", "--glob", help="Glob pattern to match .npz files for conca
 ap.add_argument("-c", "--cleanup", help="If set, original .npz files will be deleted after concatenation. Use with caution!", action="store_true")
 args = ap.parse_args()
 
-tle_utils.concatz(starter=args.starter, output_file=args.output, base_dir=args.directory, globster=args.glob, cleanup=args.cleanup)
+concatz(starter=args.starter, output_file=args.output, base_dir=args.directory, globster=args.glob, cleanup=args.cleanup)

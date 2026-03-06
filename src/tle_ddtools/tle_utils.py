@@ -148,6 +148,8 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
 
     if starter:
         if isinstance(starter, str):
+            from copy import copy
+            starter_is_file = copy(starter)
             print(f"Loading starter from {starter}")
             try:
                 d = readdataz(starter)
@@ -161,6 +163,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
                 starter[satID][key] = val
     else:
         starter = data
+        starter_is_file = False
 
     lower = epoch_doy_to_dt(limits[0])
     lower = datetime(lower.year, lower.month, lower.day).strftime('%y%m%d')  # Round down to current day
@@ -169,15 +172,22 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
     if output_file is None:
         output_file = join(base_dir, f"T{lower}_{upper}.npz")
     savez(output_file, data=starter, allow_pickle=True)
-    print(f"Concatenated {len(files)} files into {output_file} onto previous {len(starter)} unique satIDs from {lower} - {upper}")
+    print(f"Concatenated {len(files)} files into {output_file} onto previous {len(starter)} satIDs from {lower} - {upper}")
     if cleanup:
         if getsize(output_file) > maxsize:  # Only delete files if the output file size is bigger than the biggest, to avoid deleting everything in case of a bug
             from os import remove
             for f in success:
                 print(f"Removing {f}")
                 remove(f)
+            if starter_is_file:
+                if starter_is_file == output_file:
+                    print(f"Starter file {starter_is_file} overwritten.")
+                else:
+                    print(f"Removing starter file {starter_is_file}")
+                    remove(starter_is_file)
         else:
             print(f"Output file {output_file} is too small ({getsize(output_file)} bytes), skipping cleanup to avoid deleting everything in case of a bug.")
+
 
 
 def summary(filename):
