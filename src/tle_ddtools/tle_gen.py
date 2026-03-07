@@ -102,4 +102,5 @@ def tle_file_from_epoch(epoch_search, span_days=7.0, filename='concatz.npz', ret
     fn = f"tle_{esr}.tle"
     print(f"Writing {len(fnd)} TLEs to {fn}")
     write_tles_to_file(fnd, fn)
+    return fn
 
