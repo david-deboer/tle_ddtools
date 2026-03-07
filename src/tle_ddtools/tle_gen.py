@@ -26,51 +26,52 @@ Input record shape expected (per satnum):
       "revolution_number_at_epoch": int
   }
 }
-REMAP_S = ["name", "international_designator", "classification", "ephemeris_type"]
-REMAP_EPOCH = [
-    ["epochmodf", "mean_motion_dot", "mean_motion_ddot", "bstar", "element_set_number", "inclination_deg"],  # last is actually line 2
-    ["raan_deg", "eccentricity", "argument_of_perigee_deg", "mean_anomaly_deg", "mean_motion_rev_per_day", "revolution_number_at_epoch"]
-    ]
+
 """
 from . import S0, L1, L2
-from .tle_utils import readdataz, epoch_convert_fr_modf, epoch_doy_to_dt
+from .tle_utils import readdataz, epoch_doy_to_dt, epoch_dt_to_doy
 from .tle_formatter import write_tles_to_file
-from datetime import timedelta
+from datetime import datetime, timedelta
+from copy import copy
 
 
-def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', return_found=False, offset_warning=150.0):
+def tle_file_from_epoch(epoch_search, span_days=7.0, filename='concatz.npz', return_found=False, offset_warning=None):
     """
     Generate TLE files for all records in the given .npz file that have an epoch within span_days of epoch_search.
-    epoch_search should be in the format YYDDD.DDDDDDDD.
+    epoch_search should be in the format YYDDD.DDDDDDDD or datetime
 
     """
-    data = readdataz(filename)
+    data = readdataz(filename, fmt=True)
     limits = data['lim']
     data = data['data']
-    epoch_search_dt = epoch_doy_to_dt(epoch_search)
+    if isinstance(epoch_search, (float, str)):
+        epoch_search_dt = epoch_doy_to_dt(epoch_search)
+        epoch_search = float(epoch_search)
+    elif isinstance(epoch_search, datetime):
+        epoch_search_dt = epoch_search
+        epoch_search = float(epoch_dt_to_doy(epoch_search_dt))
+    else:
+        raise ValueError("epoch_search must be a string, float, or datetime")
     span_timedelta = timedelta(days=span_days)
-    print(f"Searching for TLEs with epoch within {span_days} days of {epoch_search} ({epoch_search_dt.isoformat()}) = {limits[0]:.3f} to {limits[1]:.3f}")
+    print(f"Searching for TLEs with epoch within {span_days} days of {epoch_search_dt.isoformat()} : {limits[0]:.3f} to {limits[1]:.3f}")
 
     fnd = {}
     for satID, tle_dict in data.items():
-        closest = {'epoch': None, 'delta': 1E6, 'key': None}
+        closest = {'delta': 1E10, 'key': None, 'archived': None}
         for epoch_key, tle_data in tle_dict.items():
             if epoch_key == 'S':
                 continue
-            this_epoch = epoch_convert_fr_modf('r', (epoch_key, tle_data[0][L1['epochmodf']]))
-            delta = abs(float(this_epoch) - float(epoch_search))
+            archived_dt = epoch_doy_to_dt(tle_data[0][L1['arcdoy']])  # since read with fmt=True, this is the full archive datew as a float
+            delta = abs((archived_dt - epoch_search_dt).total_seconds())
             if delta < closest['delta']:
-                closest = {'epoch': this_epoch, 'delta': delta, 'key': epoch_key}
-        this_epoch_dt = epoch_doy_to_dt(closest['epoch'])
-        this_span = this_epoch_dt - epoch_search_dt
-        offset_from_epoch = tle_data[0][L2['revolution_number_at_epoch']] / tle_data[1][L2['mean_motion_rev_per_day']]  # days
-        if offset_from_epoch > offset_warning:
+                closest = {'delta': delta, 'key': epoch_key, 'archived': archived_dt}
+        this_span = closest['archived'] - epoch_search_dt
+        key = closest['key']
+        offset_from_epoch = tle_dict[key][0][L2['revolution_number_at_epoch']] / tle_dict[key][1][L2['mean_motion_rev_per_day']]  # days
+        if offset_warning is not None and offset_from_epoch > offset_warning:
             print(f"Note: offset from epoch is greater than {offset_warning} days: {offset_from_epoch:.2f}d")
         if abs(this_span) <= span_timedelta:
-            print(f"Found {satID} at {closest['epoch']:.4f} ({this_span.total_seconds() / (3600):.3f}h)")
-            if 'S' not in tle_dict:
-                print(f"Record for satID {satID} missing 'S' section, skipping.")
-                continue
+            print(f"Found {tle_dict['S'][S0['name']]} -- {satID} at {closest['archived'].isoformat()} ({this_span.total_seconds() / (3600):.3f}h)")
             tle_data = tle_dict[closest['key']]
             international_designator = {
                 "year": tle_dict['S'][S0['international_designator']][0:2].strip(),
@@ -85,8 +86,10 @@ def tle_file_from_epoch(epoch_search, span_days=1.0, filename='concatz.npz', ret
                                     }
                         }
             for k, i in L1.items():
+                if k in ['arcdoy', 'arcmodf']:  # These are the extra ones.
+                    continue
                 if k == 'epochmodf':
-                    fnd[satID]['fields']['epoch'] = closest['epoch']
+                    fnd[satID]['fields']['epoch'] = f"{tle_data[0][i]:.8f}"
                 elif k == 'element_set_number':
                     fnd[satID]['fields'][k] = int(tle_data[0][i])
                 else:

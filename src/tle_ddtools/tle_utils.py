@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from math import modf
 from numpy import array
-from . import EPOCH_FACTOR
+from . import EPOCH_FACTOR, S0
 
 def savedataz(data, filename='tle*.npz'):
     """
@@ -45,7 +45,13 @@ def readdataz(filename, fmt=False):
     minarc, maxarc = float('inf'), float('-inf')
     for satID in data:
         for key in data[satID]:
-            if key != 'S':
+            if key == 'S':
+                intid = data[satID]['S'][S0['international_designator']]
+                if isinstance(intid, int):
+                    data[satID]['S'][S0['international_designator']] = str(intid).strip()  # backward compatibility, in case saved as int
+                if len(data[satID]['S'][S0['international_designator']]) < 6:  # Fix known bug where launches before 2010 miss the initial '0'.
+                    data[satID]['S'][S0['international_designator']] = '0' + data[satID]['S'][S0['international_designator']]
+            else:
                 newarc = epoch_convert_fr_modf('r', (data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
                 maxarc = max(maxarc, newarc)
@@ -188,7 +194,6 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
                     remove(starter_is_file)
         else:
             print(f"Output file {output_file} is too small ({getsize(output_file)} bytes), skipping cleanup to avoid deleting everything in case of a bug.")
-
 
 
 def summary(filename):

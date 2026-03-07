@@ -202,7 +202,7 @@ def tle_string_from_fields_best_effort(fields: Dict[str, Any], *, name: Optional
     if len(str(classification)) != 1:
         classification = str(classification)[:1]
 
-    ides = fields.get("international_designator") or {}
+    ides = fields.get("international_designator", {})
     id_year = ides.get("year")
     id_launch = ides.get("launch_number")
     id_piece = ides.get("piece")
