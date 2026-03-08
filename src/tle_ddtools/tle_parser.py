@@ -362,7 +362,7 @@ def remap(tles):
             elif Skey == 'international_designator':
                 vfid = vf['international_designator']
                 try:
-                    v = f"{vfid['year']}{vfid['launch_number']:03d}{vfid['piece']}"
+                    v = f"{vfid['year']:02d}{vfid['launch_number']:03d}{vfid['piece']}"
                 except TypeError:
                     print(f"Warning:  {val['name']} ({key}) has invalid international designator {vfid['year']}{vfid['launch_number']}{vfid['piece']}")
                     v = '9999999'
