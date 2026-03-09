@@ -65,15 +65,38 @@ def readdataz(filename, fmt=False):
 def epoch_convert_fr_modf(cmd, epoch):
     """
     cmd = 'f'orward or 'r'everse
-    forward takes the epoch_raw float and splits into the epoch key int and the remainder
+    forward takes the epoch/archive and splits into the epoch key int and the remainder
     reverse takes a tuple of the key/remainder and produces the epoch value
 
     """
     if cmd[0].lower() == 'f':
+        if isinstance(epoch, datetime):
+            epoch = epoch_dt_to_mjd(epoch)
+        epoch = float(epoch) if isinstance(epoch, str) else epoch
+        if epoch > 2400000.5:
+            epoch = epoch - 2400000.5
         return modf(float(epoch) * EPOCH_FACTOR)
     if cmd[0].lower() == 'r':
         return (float(epoch[0]) + float(epoch[1])) / EPOCH_FACTOR
     raise ValueError("epoch handler command must be 'f'orward or 'r'everse")
+
+
+def epoch_dt_to_mjd(epoch):
+    """
+    Convert a datetime to a Modified Julian Date (MJD).  CHECK IF THIS IS CORRECT!!!!
+
+    """
+    # MJD = JD - 2400000.5
+    # JD = 367*Y - floor((7*(Y + floor((M+9)/12)))/4) + floor((275*M)/9) + D + 1721013.5 + (h + m/60 + s/3600)/24
+    Y = epoch.year
+    M = epoch.month
+    D = epoch.day
+    h = epoch.hour
+    m = epoch.minute
+    s = epoch.second + epoch.microsecond / 1e6
+    JD = 367 * Y - (7 * (Y + ((M + 9) // 12))) // 4 + (275 * M) // 9 + D + 1721013.5 + (h + m / 60 + s / 3600) / 24
+    MJD = JD - 2400000.5
+    return MJD
 
 
 def epoch_doy_to_dt(epoch):
