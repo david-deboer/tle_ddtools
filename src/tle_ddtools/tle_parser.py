@@ -420,12 +420,12 @@ def EarthSatellite_from_dict(sat):
     esat.name = sat.get("name", "NULL")
     return esat
 
-def read_tle_files(archived, globster='*.tle', base_path='./tle'):
+def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
     from os.path import join
     from glob import glob
     from skyfield.api import load as skyfield_load
     # Do help(Satrec)
-    fields = {  # mapping from Skyfield Satrec field names to friendlier names
+    fields = {  # mapping from Skyfield Satrec field names to friendlier names, not used as a dict.
         # Line 1:
         'satnum': 'satellite_number',
         'classification': 'classification',
@@ -446,8 +446,8 @@ def read_tle_files(archived, globster='*.tle', base_path='./tle'):
         'no_kozai': 'mean_motion_rad_per_min',
         'revnum': 'revolution_number_at_epoch'
     }
-
-    tle_files = glob(join(base_path, globster))
+    if isinstance(tle_files, str):
+        tle_files = glob(join(base_path, tle_files))
     sats = {}
     for f in tle_files:
         print(f"Reading {f}")
@@ -457,7 +457,7 @@ def read_tle_files(archived, globster='*.tle', base_path='./tle'):
             key = this_sat.model.satnum  # Use satnum as key (NORAD catalog ID)
             sats[key] = {'name': this_sat.name, 'epoch_jd': float(this_sat.epoch.tt), 'archived': archived}
             for k, v in fields.items():
-                sats[key][v] = getattr(this_sat.model, v)  # Keep the Skyfield field names
+                sats[key][k] = getattr(this_sat.model, k)  # Keep the Skyfield field names
     return sats
 
 
@@ -472,18 +472,14 @@ def remap(sats):
     remapped = {}
     unk_ctr = 0
     for key, val in sats.items():
-        vf = val['fields']
         if key in remapped:
             print(f"Warning:  satID {key} is duplicated")
         remapped[key] = {'S': []}
         for Skey in REMAP_S:  # Use loop to ensure correct order
-            if Skey == 'name':
-                v = val['name']
-            else:
-                v = vf[Skey]
+            v = val.get(Skey)
             remapped[key]['S'].append(v)
         arcmodf, arcmjdf = epoch_convert_fr_modf('f', val['archived'])
-        epochmodf, epoch_key = epoch_convert_fr_modf('f', vf['epoch_jd'])
+        epochmodf, epoch_key = epoch_convert_fr_modf('f', val['epoch_jd'])
         lines = []
         for ll in sorted(REMAP_TLE.keys()):  # line1, line2
             aline = []
@@ -495,7 +491,7 @@ def remap(sats):
                 elif f == 'epochmodf':
                     aline.append(epochmodf)  # to get the epoch back use epoch_convert_fr_modf('r', [epochmodf, epoch_key])
                 else:
-                    aline.append(vf[f])
+                    aline.append(val[f])
             lines.append(aline)
         remapped[key][int(epoch_key)] = array(lines, dtype=float32)
     if unk_ctr:

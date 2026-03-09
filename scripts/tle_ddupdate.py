@@ -30,8 +30,8 @@ if args.ident is not None:
 elif args.archived is not None:
     from datetime import datetime
     if args.archived == 'now':
-        archived_epoch = ue.epoch_dt_to_doy(datetime.now())
-        filename = join(args.base_path, f"tle_{archived_epoch:.2f}.npz")
+        archived_epoch = datetime.now()
+        filename = join(args.base_path, f"tle_{archived_epoch.strftime('%Y-%m-%dT%H:%M:%S')}.npz")
     else:
         raise NotImplementedError("Only 'now' is implemented for --archived argument at this time. THIS SCRIPT IS A MESS")
 else:

@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 from math import modf
 from numpy import array
 from . import EPOCH_FACTOR, S0
+from astropy.time import Time
+
 
 def savedataz(data, filename='tle*.npz'):
     """
@@ -46,11 +48,12 @@ def readdataz(filename, fmt=False):
     for satID in data:
         for key in data[satID]:
             if key == 'S':
-                intid = data[satID]['S'][S0['international_designator']]
+                continue
+                intid = data[satID]['S'][S0['intl_desg']]
                 if isinstance(intid, int):
-                    data[satID]['S'][S0['international_designator']] = str(intid).strip()  # backward compatibility, in case saved as int
-                if len(data[satID]['S'][S0['international_designator']]) < 6:  # Fix known bug where launches before 2010 miss the initial '0'.
-                    data[satID]['S'][S0['international_designator']] = '0' + data[satID]['S'][S0['international_designator']]
+                    data[satID]['S'][S0['intl_desg']] = str(intid).strip()  # backward compatibility, in case saved as int
+                if len(data[satID]['S'][S0['intl_desg']]) < 6:  # Fix known bug where launches before 2010 miss the initial '0'.
+                    data[satID]['S'][S0['intl_desg']] = '0' + data[satID]['S'][S0['international_designator']]
             else:
                 newarc = epoch_convert_fr_modf('r', (data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
@@ -66,40 +69,53 @@ def epoch_convert_fr_modf(cmd, epoch):
     """
     cmd = 'f'orward or 'r'everse
     forward takes the epoch/archive and splits into the epoch key int and the remainder
-    reverse takes a tuple of the key/remainder and produces the epoch value
+    reverse takes a tuple of the key/remainder and produces the epoch value (scaled MJD)
+
+    Parameters
+    ----------
+    cmd : str
+        'f' for forward, 'r' for reverse
+    epoch : float or tuple or datetime
+        cmd == 'f':
+        - float representing the full epoch value (datetime, jd, mjd) returns a tuple of (fractional part, integer part) of the scaled mjd
+        cmd == 'r':
+        - tuple of (integer part, fractional part) representing the scaled mjd and remainder returns float of mjd
 
     """
     if cmd[0].lower() == 'f':
         if isinstance(epoch, datetime):
             epoch = epoch_dt_to_mjd(epoch)
-        epoch = float(epoch) if isinstance(epoch, str) else epoch
-        if epoch > 2400000.5:
-            epoch = epoch - 2400000.5
-        return modf(float(epoch) * EPOCH_FACTOR)
+        else:
+            epoch = float(epoch) if isinstance(epoch, str) else epoch
+            if epoch > 2400000.5:
+                epoch = epoch - 2400000.5
+        return modf(epoch * EPOCH_FACTOR)
     if cmd[0].lower() == 'r':
         return (float(epoch[0]) + float(epoch[1])) / EPOCH_FACTOR
     raise ValueError("epoch handler command must be 'f'orward or 'r'everse")
 
 
-def epoch_dt_to_mjd(epoch):
+def dt_to_mjd(epoch):
     """
     Convert a datetime to a Modified Julian Date (MJD).  CHECK IF THIS IS CORRECT!!!!
 
     """
+    mjd = float(Time(epoch).mjd)
+    # JD = 367 * Y - (7 * (Y + ((M + 9) // 12))) // 4 + (275 * M) // 9 + D + 1721013.5 + (h + m / 60 + s / 3600) / 24
     # MJD = JD - 2400000.5
-    # JD = 367*Y - floor((7*(Y + floor((M+9)/12)))/4) + floor((275*M)/9) + D + 1721013.5 + (h + m/60 + s/3600)/24
-    Y = epoch.year
-    M = epoch.month
-    D = epoch.day
-    h = epoch.hour
-    m = epoch.minute
-    s = epoch.second + epoch.microsecond / 1e6
-    JD = 367 * Y - (7 * (Y + ((M + 9) // 12))) // 4 + (275 * M) // 9 + D + 1721013.5 + (h + m / 60 + s / 3600) / 24
-    MJD = JD - 2400000.5
-    return MJD
+    return mjd
 
 
-def epoch_doy_to_dt(epoch):
+def mjd_to_dt(mjd):
+    """
+    Convert a Modified Julian Date (MJD) to a datetime.
+
+    """
+    epoch = Time(mjd, format='mjd').to_datetime()
+    return epoch
+
+
+def doy_to_dt(epoch):
     """
     Parse epoch YYDDD.DDDDDDDD -> UTC datetime (naive).
     Convention: 57-99 => 1957-1999, 00-56 => 2000-2056.
@@ -117,7 +133,7 @@ def epoch_doy_to_dt(epoch):
     return day0 + timedelta(days=frac)
 
 
-def epoch_dt_to_doy(epoch: datetime) -> float:
+def dt_to_doy(epoch: datetime) -> float:
     """
     Convert a datetime to a TLE epoch YYDDD.ffffff.
 

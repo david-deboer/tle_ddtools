@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from os import path
 from . import tle_parser, EPOCH_FACTOR
-from .tle_utils import epoch_dt_to_doy
+from .tle_utils import dt_to_doy
 from datetime import datetime
 
 
@@ -22,12 +22,12 @@ def make_tle_filename(tle_name):
 
 def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/NORAD/elements/', archived=None):
     if archived is None:
-        archived = epoch_dt_to_doy(datetime.now())
-    series_rec = {}
+        archived = dt_to_doy(datetime.now())
     if group == '*':
         group = ''
     master_file = requests.get(base_url)
     soup = BeautifulSoup(master_file.text, 'html.parser')
+    found_files = []
     for td in soup.find_all('td'):
         this_href = td.find('a')
         try:
@@ -47,13 +47,13 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
             except Exception as e:
                 print(e)
                 continue
+            found_files.append(tlefilename)
             with open(tlefilename, 'w') as f:
                 f.write(tle_file.text)
-            data = tle_parser.remap(tle_parser.parse_tles_from_file(tlefilename, archived=archived))
-            series_rec.update(data)
-    return series_rec
+    return tle_parser.remap(tle_parser.read_tle_files(archived=archived, tle_files=found_files, base_path=base_path))
 
 def updatetle_dir(base_path='./tle', archived=None):
+    print("NOT UPDATED!!!")
     if archived is None:
         archived = epoch_dt_to_doy(datetime.now())
     from os.path import join
@@ -63,7 +63,7 @@ def updatetle_dir(base_path='./tle', archived=None):
     for f in tle_files:
         print(f"Parsing {f}")
         try:
-            data = tle_parser.remap(tle_parser.parse_tles_from_file(f, archived=archived))
+            data = tle_parser.remap(tle_parser.read_tle_files(archived=archived, tle_files=f, base_path=base_path))
         except Exception as e:
             print(f"Error parsing {f}: {e}")
             continue
