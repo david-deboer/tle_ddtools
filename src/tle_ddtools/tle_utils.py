@@ -84,7 +84,7 @@ def epoch_convert_fr_modf(cmd, epoch):
     """
     if cmd[0].lower() == 'f':
         if isinstance(epoch, datetime):
-            epoch = epoch_dt_to_mjd(epoch)
+            epoch = dt_to_mjd(epoch)
         else:
             epoch = float(epoch) if isinstance(epoch, str) else epoch
             if epoch > 2400000.5:

@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from os import path
 from . import tle_parser, EPOCH_FACTOR
-from .tle_utils import dt_to_doy
+from .tle_utils import dt_to_mjd
 from datetime import datetime
 
 
@@ -22,7 +22,7 @@ def make_tle_filename(tle_name):
 
 def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/NORAD/elements/', archived=None):
     if archived is None:
-        archived = dt_to_doy(datetime.now())
+        archived = dt_to_mjd(datetime.now())
     if group == '*':
         group = ''
     master_file = requests.get(base_url)
@@ -53,9 +53,8 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
     return tle_parser.remap(tle_parser.read_tle_files(archived=archived, tle_files=found_files, base_path=base_path))
 
 def updatetle_dir(base_path='./tle', archived=None):
-    print("NOT UPDATED!!!")
     if archived is None:
-        archived = epoch_dt_to_doy(datetime.now())
+        archived = dt_to_mjd(datetime.now())
     from os.path import join
     from glob import glob
     tle_files = glob(join(base_path, '*.tle'))
