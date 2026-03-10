@@ -49,11 +49,6 @@ def readdataz(filename, fmt=False):
         for key in data[satID]:
             if key == 'S':
                 continue
-                intid = data[satID]['S'][S0['intl_desg']]
-                if isinstance(intid, int):
-                    data[satID]['S'][S0['intl_desg']] = str(intid).strip()  # backward compatibility, in case saved as int
-                if len(data[satID]['S'][S0['intl_desg']]) < 6:  # Fix known bug where launches before 2010 miss the initial '0'.
-                    data[satID]['S'][S0['intl_desg']] = '0' + data[satID]['S'][S0['international_designator']]
             else:
                 newarc = epoch_convert_fr_modf('r', (data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
@@ -86,7 +81,7 @@ def epoch_convert_fr_modf(cmd, epoch):
         if isinstance(epoch, datetime):
             epoch = dt_to_mjd(epoch)
         else:
-            epoch = float(epoch) if isinstance(epoch, str) else epoch
+            epoch = float(epoch)
             if epoch > 2400000.5:
                 epoch = epoch - 2400000.5
         return modf(epoch * EPOCH_FACTOR)

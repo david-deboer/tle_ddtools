@@ -461,6 +461,20 @@ def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
     return sats
 
 
+def get_times(key, entry):
+    """
+    Get the epoch times from a TLE entry, both the archived epoch and the TLE epoch.
+
+    Returns:
+        archived_epoch (mjd)
+        tle_epoch (mjd)
+
+    """
+    tle_epoch = epoch_convert_fr_modf('r', (key, entry[0][REMAP_TLE['line1'].index('epochmodf')]))
+    archived = epoch_convert_fr_modf('r', (entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
+    return tle_epoch, archived
+
+
 def remap(sats):
     """
     Remap TLE data from read_tle_files() into a different structure that can track over time.
