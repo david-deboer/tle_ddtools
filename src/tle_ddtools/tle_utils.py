@@ -7,7 +7,7 @@ from astropy.time import Time
 
 def savedataz(data, filename='tle*.npz'):
     """
-    Save TLE data (output of tle_parser.remap) to a .npz file.
+    Save TLE data (output of tle_parser.tles_to_npz) to a .npz file.
 
     """
     from numpy import savez, floor

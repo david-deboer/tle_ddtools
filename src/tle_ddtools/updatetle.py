@@ -50,7 +50,7 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
             found_files.append(tlefilename)
             with open(tlefilename, 'w') as f:
                 f.write(tle_file.text)
-    return tle_parser.remap(tle_parser.read_tle_files(archived=archived, tle_files=found_files, base_path=base_path))
+    return tle_parser.tles_to_npz(tle_parser.read_tle_files(archived=archived, tle_files=found_files, base_path=base_path))
 
 def updatetle_dir(base_path='./tle', archived=None):
     if archived is None:
@@ -62,7 +62,7 @@ def updatetle_dir(base_path='./tle', archived=None):
     for f in tle_files:
         print(f"Parsing {f}")
         try:
-            data = tle_parser.remap(tle_parser.read_tle_files(archived=archived, tle_files=f, base_path=base_path))
+            data = tle_parser.tles_to_npz(tle_parser.read_tle_files(archived=archived, tle_files=f, base_path=base_path))
         except Exception as e:
             print(f"Error parsing {f}: {e}")
             continue

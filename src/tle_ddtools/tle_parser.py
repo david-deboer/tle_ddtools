@@ -38,7 +38,7 @@
 #     nodeo       - right ascension of ascending node (radians)
 
 from . import REMAP_S, REMAP_TLE, FIELDS
-from .tle_utils import tuple_to_epoch, epoch_to_tuple
+from .tle_utils import mjd_to_dt, tuple_to_epoch, epoch_to_tuple, mjd_to_dt
 from sgp4.api import Satrec, WGS72
 from skyfield.api import EarthSatellite, load
 from sgp4.exporter import export_tle
@@ -126,32 +126,87 @@ def get_times(key, entry):
     archived = tuple_to_epoch((entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
     return tle_epoch, archived
 
-def npz_to_tle(data):
+def npzs_to_tle(satz, entry, satID=None):
     """
-    Remap input from an npz file to the format from the read_tle_files
+    Remap input from an npz file to the format from the read_tle_files.
 
+    Parameters
+    ----------
+    satz : dict
+        The data dict as read from the .npz file, structured as {satID: {'S': [...], epoch_key: array([...])}}
+    entry : int
+        The epoch key to extract from the data dict for the given satID (not all satID may have it)
+    satID : int or None
+        If provided, it will assume that is the key to one entry in 'sats' or it will just use that satID if sats is in the above format.
+    
     """
+    if satID is not None:
+        if satID in satz:
+            satz = {satID: satz[satID]}
+        else:
+            satz = {satID: {'S': satz['S'], entry: satz[entry]}}
     remapped = {}
+    for satID, data in satz.items():
+        if satID in remapped:
+            print(f"Warning:  satID {satID} is duplicated")
+        if entry not in data:
+            print(f"Warning:  satID {satID} does not have entry {entry} -- skipping")
+            continue
+        remapped[satID] = {}
+        for Skey in REMAP_S:
+            v = data['S'][REMAP_S.index(Skey)]
+            remapped[satID][Skey] = v
+        epoch_jd, archived = get_times(entry, data[entry])
+        remapped[satID]['epoch_jd'] = epoch_jd + 2400000.5  # Convert back to JD
+        remapped[satID]['archived'] = mjd_to_dt(archived)
 
-def tle_to_npz(sats):
+        for idx, field in enumerate(REMAP_TLE['line1']):
+            if field in ['arcmjdf', 'arcmodf', 'epochmodf']:
+                continue  # These are used to reconstruct the epoch, not individual fields
+            if field == 'elnum':
+                remapped[satID][field] = int(data[entry][0][idx])  # elnum is an integer
+            else:
+                remapped[satID][field] = float(data[entry][0][idx])
+        for idx, field in enumerate(REMAP_TLE['line2']):
+            remapped[satID][field] = float(data[entry][1][idx])
+
+    return remapped
+
+def tles_to_npz(sats, satID=None):
     """
     Remap TLE data from read_tle_files() into a different structure that can track over time.
 
     See REMAP_S and REMAP_EPOCH for the specific fields included in "S" and the epoch_key arrays.
     The epoch_key is derived from the epoch by taking the integer part of (epoch * EPOCH_FACTOR), which allows grouping TLEs by epoch while retaining the fractional part in the array.
 
+    Parameter
+    ---------
+    sats : dict
+        The input TLE data as returned by read_tle_files(), structured as {satID: {'name': ..., 'epoch_jd': ..., 'archived': ..., 'bstar':
+    satID : int or None
+        If provided, it will assume that is the key to one entry in 'sats' or it will just use that satID if sats is in the above format.
+    
     """
+    if satID is not None:
+        if satID in sats:
+            sats = {satID: sats[satID]}
+        else:
+            sats = {satID: sats}
+
     remapped = {}
     unk_ctr = 0
-    for key, val in sats.items():
-        if key in remapped:
-            print(f"Warning:  satID {key} is duplicated")
-        remapped[key] = {'S': []}
+    for satID, data in sats.items():
+        if satID in remapped:
+            print(f"Warning:  satID {satID} is duplicated")
+        if satID != data['satnum']:
+            print(f"Error:  satID {satID} does not match satnum {data['satnum']} -- skipping")
+            continue
+        remapped[satID] = {'S': []}
         for Skey in REMAP_S:  # Use loop to ensure correct order
-            v = val.get(Skey)
-            remapped[key]['S'].append(v)
-        arcmodf, arcmjdf = epoch_to_tuple(val['archived'])
-        epochmodf, epoch_key = epoch_to_tuple(val['epoch_jd'])
+            v = data.get(Skey)
+            remapped[satID]['S'].append(v)
+        arcmodf, arcmjdf = epoch_to_tuple(data['archived'])
+        epochmodf, epoch_key = epoch_to_tuple(data['epoch_jd'])
         lines = []
         for ll in sorted(REMAP_TLE.keys()):  # line1, line2
             aline = []
@@ -163,9 +218,9 @@ def tle_to_npz(sats):
                 elif f == 'epochmodf':
                     aline.append(epochmodf)  # to get the epoch back use tuple_to_epoch([epochmodf, epoch_key])
                 else:
-                    aline.append(val[f])
+                    aline.append(data[f])
             lines.append(aline)
-        remapped[key][int(epoch_key)] = array(lines, dtype=float32)
+        remapped[satID][int(epoch_key)] = array(lines, dtype=float32)
     if unk_ctr:
         print(f"Unknown found: {unk_ctr}")
     return remapped
