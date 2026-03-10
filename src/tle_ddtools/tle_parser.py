@@ -92,9 +92,12 @@ def EarthSatellite_from_dict(sat):
     esat.name = sat.get("name", "NULL")
     return esat
 
-def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
+def read_tle_files(archived='now', tle_files='*.tle', base_path='./tle'):
     from glob import glob
     from skyfield.api import load as skyfield_load
+    if archived == 'now':
+        from datetime import datetime
+        archived = datetime.now()
     if isinstance(tle_files, str): 
         tle_files = glob(join(base_path, tle_files))
     sats = {}
@@ -126,7 +129,7 @@ def get_times(key, entry):
 def npz_to_tle(data):
     """
     Remap input from an npz file to the format from the read_tle_files
-    
+
     """
     remapped = {}
 
