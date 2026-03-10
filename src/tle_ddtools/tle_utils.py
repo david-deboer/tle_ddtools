@@ -30,7 +30,7 @@ def savedataz(data, filename='tle*.npz'):
     savez(filename, data=data, allow_pickle=True)
     print("Saved data to", filename)
 
-def readdataz(filename, fmt=False):
+def readdataz(filename):
     """
     Read TLE data from a .npz file saved by savedataz.
 
@@ -38,12 +38,10 @@ def readdataz(filename, fmt=False):
     ----------
     filename : str
         The path to the .npz file to read.
-    fmt : bool, optional
-        If True, convert the fractured archived and epoch values to floats
+
     """
     from numpy import load
     data = load(filename, allow_pickle=True)['data'].item()
-    arcmjdf, arcmodf, epochmodf = 0, 1, 2  # Should compute via REMAP_EPOCH but this is faster and we know the order
     minarc, maxarc = float('inf'), float('-inf')
     for satID in data:
         for key in data[satID]:
@@ -53,11 +51,6 @@ def readdataz(filename, fmt=False):
                 newarc = tuple_to_epoch((data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
                 maxarc = max(maxarc, newarc)
-                if fmt:
-                    data[satID][key][0][arcmjdf] = newarc
-                    data[satID][key][0][arcmodf] = 0.0
-                    newepc = tuple_to_epoch((key, data[satID][key][0][epochmodf]))
-                    data[satID][key][0][epochmodf] = newepc
     return {'lim': (mjd_to_dt(minarc), mjd_to_dt(maxarc)), 'data': data}
 
 
@@ -101,15 +94,18 @@ def tuple_to_epoch(epoch_tuple):
     return (float(epoch_tuple[0]) + float(epoch_tuple[1])) / EPOCH_FACTOR
 
 
-def dt_to_mjd(epoch):
+def dt_to_mjd(dt, scale='mjd'):
     """
     Convert a datetime to a Modified Julian Date (MJD).  CHECK IF THIS IS CORRECT!!!!
 
     """
-    mjd = float(Time(epoch).mjd)
+    T = Time(dt)
+    mjd = float(T.mjd)
+    jd = float(T.jd)
+    v = float(T.mjd) if scale == 'mjd' else float(T.jd)
+    return v
     # JD = 367 * Y - (7 * (Y + ((M + 9) // 12))) // 4 + (275 * M) // 9 + D + 1721013.5 + (h + m / 60 + s / 3600) / 24
     # MJD = JD - 2400000.5
-    return mjd
 
 
 def mjd_to_dt(mjd):
@@ -117,6 +113,9 @@ def mjd_to_dt(mjd):
     Convert a Modified Julian Date (MJD) to a datetime.
 
     """
+    mjd = float(mjd)
+    if mjd > 2400000.5:
+        mjd = mjd - 2400000.5
     epoch = Time(mjd, format='mjd').to_datetime()
     return epoch
 

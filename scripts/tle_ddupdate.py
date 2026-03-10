@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from tle_ddtools import updatetle_engine as ue
+from tle_ddtools import updatetle as utle
 from tle_ddtools.tle_utils import savedataz
 import argparse
 from os.path import join
@@ -39,10 +39,10 @@ else:
 
 if args.base_url.startswith('http'):
     print(f"Updating TLEs for group {args.group} from {args.base_url} to {args.base_path}")
-    data = ue.updatetle_web(group=args.group, base_path=args.base_path, base_url=args.base_url, archived=archived_epoch)
+    data = utle.updatetle_web(group=args.group, base_path=args.base_path, base_url=args.base_url, archived=archived_epoch)
 else:
     print(f"Updating TLEs for group {args.group} from {args.base_path}")
-    data = ue.updatetle_dir(base_path=args.base_path, archived=archived_epoch)
+    data = utle.updatetle_dir(base_path=args.base_path, archived=archived_epoch)
 
 
 print("Saving data to", filename)

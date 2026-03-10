@@ -46,7 +46,7 @@ from numpy import array, float32
 from os.path import join
 
 
-def write_tle_file(sats, filename='output.tle'):
+def write_tles_to_file(sats, filename='output.tle'):
     with open(filename, 'w') as f:
         for satnum, sat in sats.items():
             f.write(TLE_from_EarthSatellite(EarthSatellite_from_dict(sat)))
