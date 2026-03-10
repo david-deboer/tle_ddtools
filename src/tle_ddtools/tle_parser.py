@@ -446,7 +446,7 @@ def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
         'no_kozai': 'mean_motion_rad_per_min',
         'revnum': 'revolution_number_at_epoch'
     }
-    if isinstance(tle_files, str):
+    if isinstance(tle_files, str): 
         tle_files = glob(join(base_path, tle_files))
     sats = {}
     for f in tle_files:
