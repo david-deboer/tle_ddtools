@@ -123,8 +123,14 @@ def get_times(key, entry):
     archived = tuple_to_epoch((entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
     return tle_epoch, archived
 
+def npz_to_tle(data):
+    """
+    Remap input from an npz file to the format from the read_tle_files
+    
+    """
+    remapped = {}
 
-def remap(sats):
+def tle_to_npz(sats):
     """
     Remap TLE data from read_tle_files() into a different structure that can track over time.
 
