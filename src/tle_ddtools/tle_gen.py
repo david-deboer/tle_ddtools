@@ -30,7 +30,6 @@ Input record shape expected (per satnum):
 """
 from . import S0, L1, L2
 from .tle_utils import readdataz, epoch_doy_to_dt, epoch_dt_to_doy
-from .tle_formatter import write_tles_to_file
 from datetime import datetime, timedelta
 from copy import copy
 

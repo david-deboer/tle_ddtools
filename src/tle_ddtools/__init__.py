@@ -8,6 +8,28 @@
 from importlib.metadata import version
 __version__ = version('tle_ddtools')
 
+FIELDS = {  # mapping from Skyfield Satrec field names to friendlier names, not used as a dict.
+    # Line 1:
+    'satnum': 'satellite_number',
+    'classification': 'classification',
+    'intldesg': 'international_designator',
+    'epochyr': 'epochyr',
+    'epochdays': 'epochdays',
+    'ndot': 'mean_motion_dot',
+    'nddot': 'mean_motion_ddot',
+    'bstar': 'bstar',
+    'ephtype': 'ephemeris_type',
+    'elnum': 'element_set_number',
+    # Line 2:
+    'inclo': 'inclination_rad',
+    'nodeo': 'raan_rad',
+    'ecco': 'eccentricity',
+    'argpo': 'argument_of_perigee_rad',
+    'mo': 'mean_anomaly_rad',
+    'no_kozai': 'mean_motion_rad_per_min',
+    'revnum': 'revolution_number_at_epoch'
+}
+
 EPOCH_FACTOR = 100.0
 REMAP_S = ["name", "intldesg", "classification", "ephtype"]
 REMAP_TLE = { # arcmjdf/modf are extra fields for dating TLE archival dates (see tle_parser docuemntation for details)

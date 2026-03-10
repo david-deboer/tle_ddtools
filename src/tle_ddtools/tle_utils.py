@@ -43,51 +43,62 @@ def readdataz(filename, fmt=False):
     """
     from numpy import load
     data = load(filename, allow_pickle=True)['data'].item()
-    arcdoy, arcmodf, epochmodf = 0, 1, 2  # Should compute via REMAP_EPOCH but this is faster and we know the order
+    arcmjdf, arcmodf, epochmodf = 0, 1, 2  # Should compute via REMAP_EPOCH but this is faster and we know the order
     minarc, maxarc = float('inf'), float('-inf')
     for satID in data:
         for key in data[satID]:
             if key == 'S':
                 continue
             else:
-                newarc = epoch_convert_fr_modf('r', (data[satID][key][0][0], data[satID][key][0][1]))
+                newarc = tuple_to_epoch((data[satID][key][0][0], data[satID][key][0][1]))
                 minarc = min(minarc, newarc)
                 maxarc = max(maxarc, newarc)
                 if fmt:
-                    data[satID][key][0][arcdoy] = newarc
+                    data[satID][key][0][arcmjdf] = newarc
                     data[satID][key][0][arcmodf] = 0.0
-                    newepc = epoch_convert_fr_modf('r', (key, data[satID][key][0][epochmodf]))
+                    newepc = tuple_to_epoch((key, data[satID][key][0][epochmodf]))
                     data[satID][key][0][epochmodf] = newepc
-    return {'lim': (minarc, maxarc), 'data': data}
+    return {'lim': (mjd_to_dt(minarc), mjd_to_dt(maxarc)), 'data': data}
 
-def epoch_convert_fr_modf(cmd, epoch):
+
+def epoch_to_tuple(epoch):
     """
-    cmd = 'f'orward or 'r'everse
-    forward takes the epoch/archive and splits into the epoch key int and the remainder
-    reverse takes a tuple of the key/remainder and produces the epoch value (scaled MJD)
+    Splits the epoch/archive datetime/mjd/jd into the epoch key int and the remainder (modf)
+
+    Parameter
+    ----------
+    epoch : float or tuple or datetime
+        epoch value (datetime, jd, mjd)
+
+    Returns
+    -------
+    tuple : modf and int parts of the epoch, scaled by EPOCH_FACTOR
+
+    """
+    if isinstance(epoch, datetime):
+        epoch = dt_to_mjd(epoch)
+    else:
+        epoch = float(epoch)
+        if epoch > 2400000.5:
+            epoch = epoch - 2400000.5
+    return modf(epoch * EPOCH_FACTOR)
+
+
+def tuple_to_epoch(epoch_tuple):
+    """
+    Joins the scaled tuple of the key/remainder to produce the epoch value (scaled MJD)
 
     Parameters
     ----------
-    cmd : str
-        'f' for forward, 'r' for reverse
-    epoch : float or tuple or datetime
-        cmd == 'f':
-        - float representing the full epoch value (datetime, jd, mjd) returns a tuple of (fractional part, integer part) of the scaled mjd
-        cmd == 'r':
-        - tuple of (integer part, fractional part) representing the scaled mjd and remainder returns float of mjd
+    epoch : tuple
+        tuple of (integer part, fractional part) representing the scaled mjd and remainder
+
+    Returns
+    -------
+    float : mjd value corresponding to the input scaled tuple
 
     """
-    if cmd[0].lower() == 'f':
-        if isinstance(epoch, datetime):
-            epoch = dt_to_mjd(epoch)
-        else:
-            epoch = float(epoch)
-            if epoch > 2400000.5:
-                epoch = epoch - 2400000.5
-        return modf(epoch * EPOCH_FACTOR)
-    if cmd[0].lower() == 'r':
-        return (float(epoch[0]) + float(epoch[1])) / EPOCH_FACTOR
-    raise ValueError("epoch handler command must be 'f'orward or 'r'everse")
+    return (float(epoch_tuple[0]) + float(epoch_tuple[1])) / EPOCH_FACTOR
 
 
 def dt_to_mjd(epoch):
@@ -245,7 +256,7 @@ def summary(filename):
     for satID, tle_dict in data.items():
         num_epochs = len([k for k in tle_dict if k != 'S'])
         cnt_epochs.append(num_epochs)
-        list_epochs.extend([epoch_convert_fr_modf('r', (tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
+        list_epochs.extend([tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
         # if num_epochs > 10:
         #     print(f"{tle_dict['S'][0]} ({satID}): {num_epochs} epochs")
 

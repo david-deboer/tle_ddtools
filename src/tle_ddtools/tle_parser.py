@@ -37,12 +37,20 @@
 #     no_kozai    - mean motion (radians/minute)
 #     nodeo       - right ascension of ascending node (radians)
 
-from . import REMAP_S, REMAP_TLE
-from .tle_utils import epoch_convert_fr_modf
+from . import REMAP_S, REMAP_TLE, FIELDS
+from .tle_utils import tuple_to_epoch, epoch_to_tuple
 from sgp4.api import Satrec, WGS72
 from skyfield.api import EarthSatellite, load
 from sgp4.exporter import export_tle
 from numpy import array, float32
+from os.path import join
+
+
+def write_tle_file(sats, filename='output.tle'):
+    with open(filename, 'w') as f:
+        for satnum, sat in sats.items():
+            f.write(TLE_from_EarthSatellite(EarthSatellite_from_dict(sat)))
+
 
 def TLE_from_EarthSatellite(sat):
     """
@@ -85,31 +93,8 @@ def EarthSatellite_from_dict(sat):
     return esat
 
 def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
-    from os.path import join
     from glob import glob
     from skyfield.api import load as skyfield_load
-    # Do help(Satrec)
-    fields = {  # mapping from Skyfield Satrec field names to friendlier names, not used as a dict.
-        # Line 1:
-        'satnum': 'satellite_number',
-        'classification': 'classification',
-        'intldesg': 'international_designator',
-        'epochyr': 'epochyr',
-        'epochdays': 'epochdays',
-        'ndot': 'mean_motion_dot',
-        'nddot': 'mean_motion_ddot',
-        'bstar': 'bstar',
-        'ephtype': 'ephemeris_type',
-        'elnum': 'element_set_number',
-        # Line 2:
-        'inclo': 'inclination_rad',
-        'nodeo': 'raan_rad',
-        'ecco': 'eccentricity',
-        'argpo': 'argument_of_perigee_rad',
-        'mo': 'mean_anomaly_rad',
-        'no_kozai': 'mean_motion_rad_per_min',
-        'revnum': 'revolution_number_at_epoch'
-    }
     if isinstance(tle_files, str): 
         tle_files = glob(join(base_path, tle_files))
     sats = {}
@@ -120,7 +105,7 @@ def read_tle_files(archived, tle_files='*.tle', base_path='./tle'):
             # key = f"{this_sat.model.satnum}:{this_sat.model.intldesg}"
             key = this_sat.model.satnum  # Use satnum as key (NORAD catalog ID)
             sats[key] = {'name': this_sat.name, 'epoch_jd': float(this_sat.epoch.tt), 'archived': archived}
-            for k, v in fields.items():
+            for k, v in FIELDS.items():
                 sats[key][k] = getattr(this_sat.model, k)  # Keep the Skyfield field names
     return sats
 
@@ -134,8 +119,8 @@ def get_times(key, entry):
         tle_epoch (mjd)
 
     """
-    tle_epoch = epoch_convert_fr_modf('r', (key, entry[0][REMAP_TLE['line1'].index('epochmodf')]))
-    archived = epoch_convert_fr_modf('r', (entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
+    tle_epoch = tuple_to_epoch((key, entry[0][REMAP_TLE['line1'].index('epochmodf')]))
+    archived = tuple_to_epoch((entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
     return tle_epoch, archived
 
 
@@ -156,8 +141,8 @@ def remap(sats):
         for Skey in REMAP_S:  # Use loop to ensure correct order
             v = val.get(Skey)
             remapped[key]['S'].append(v)
-        arcmodf, arcmjdf = epoch_convert_fr_modf('f', val['archived'])
-        epochmodf, epoch_key = epoch_convert_fr_modf('f', val['epoch_jd'])
+        arcmodf, arcmjdf = epoch_to_tuple(val['archived'])
+        epochmodf, epoch_key = epoch_to_tuple(val['epoch_jd'])
         lines = []
         for ll in sorted(REMAP_TLE.keys()):  # line1, line2
             aline = []
@@ -167,7 +152,7 @@ def remap(sats):
                 elif f == 'arcmodf':
                     aline.append(arcmodf)
                 elif f == 'epochmodf':
-                    aline.append(epochmodf)  # to get the epoch back use epoch_convert_fr_modf('r', [epochmodf, epoch_key])
+                    aline.append(epochmodf)  # to get the epoch back use tuple_to_epoch([epochmodf, epoch_key])
                 else:
                     aline.append(val[f])
             lines.append(aline)
