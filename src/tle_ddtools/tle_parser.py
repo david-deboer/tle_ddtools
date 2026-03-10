@@ -107,7 +107,8 @@ def read_tle_files(archived='now', tle_files='*.tle', base_path='./tle'):
         for this_sat in this_data:
             # key = f"{this_sat.model.satnum}:{this_sat.model.intldesg}"
             key = this_sat.model.satnum  # Use satnum as key (NORAD catalog ID)
-            sats[key] = {'name': this_sat.name, 'epoch_jd': float(this_sat.epoch.tt), 'archived': archived}
+            epoch_jd = float(this_sat.model.jdsatepoch + this_sat.model.jdsatepochF)
+            sats[key] = {'name': this_sat.name, 'epoch_jd': epoch_jd, 'archived': archived}
             for k, v in FIELDS.items():
                 sats[key][k] = getattr(this_sat.model, k)  # Keep the Skyfield field names
     return sats
@@ -159,6 +160,7 @@ def npzs_to_tle(satz, entry, satID=None):
         epoch_jd, archived = get_times(entry, data[entry])
         remapped[satID]['epoch_jd'] = epoch_jd + 2400000.5  # Convert back to JD
         remapped[satID]['archived'] = mjd_to_dt(archived)
+        remapped[satID]['satnum'] = int(satID)
 
         for idx, field in enumerate(REMAP_TLE['line1']):
             if field in ['arcmjdf', 'arcmodf', 'epochmodf']:
@@ -168,7 +170,10 @@ def npzs_to_tle(satz, entry, satID=None):
             else:
                 remapped[satID][field] = float(data[entry][0][idx])
         for idx, field in enumerate(REMAP_TLE['line2']):
-            remapped[satID][field] = float(data[entry][1][idx])
+            if field == 'revnum':
+                remapped[satID][field] = int(data[entry][1][idx])  # revnum is an integer
+            else:
+                remapped[satID][field] = float(data[entry][1][idx])
 
     return remapped
 
