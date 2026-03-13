@@ -98,25 +98,23 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
 
 
 def summary(filename):
-    """
-    Print a summary of the TLE data in the given .npz file, including the distribution of epoch counts per satID.
-    """
+    """Print/plot a summary of the TLE data in the given .npz file."""
     data = readdataz(filename)
     print(f"Summary of {filename}:")
     print(f"Total unique satIDs: {len(data['data'])}")
     print("Epoch limits:", [x.isoformat() for x in data['lim']])
     list_epochs = []
-    _archive_counter = {}
+    archive_mjd_counter = {}
     for satID, tle_dict in data['data'].items():
         archived = [tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S']
         list_epochs.extend(archived)
         for entry in archived:
             key = int(floor(entry))
-            _archive_counter.setdefault(key, 0)
-            _archive_counter[key] += 1
+            archive_mjd_counter.setdefault(key, 0)
+            archive_mjd_counter[key] += 1
 
-    sorted_archive_mjd = sorted(_archive_counter.keys())
-    archive_counter = {mjd_to_dt(key): _archive_counter[key] for key in sorted_archive_mjd}
+    sorted_archive_mjd = sorted(archive_mjd_counter.keys())
+    archive_counter = {mjd_to_dt(key): archive_mjd_counter[key] for key in sorted_archive_mjd}
     keys = list(archive_counter.keys())
 
     # Choose bins: either an int (# of bins) or explicit edges (array)
@@ -128,27 +126,22 @@ def summary(filename):
     dt_centers = [mjd_to_dt(epoch) for epoch in centers]
     widths = np.diff(edges)
 
-    # Plot as bars (histogram-style)
-    plt.bar(dt_centers, counts, width=widths, align="center")
-    plt.xlabel("Archived Date")
-    plt.ylabel(f"Count per {bdays} days")
-    plt.tight_layout()
-    plt.show()
-
-    plt.figure()
-    plt.plot(archive_counter.keys(), archive_counter.values(), '.')
-    plt.xlabel("Archived Date")
-    plt.ylabel(f"Count per archived day")
-    plt.tight_layout()
-    plt.show()
-
     cadence = [(keys[i], float(epoch)) for i, epoch in enumerate(np.diff(sorted_archive_mjd))]
-    a, b = [], []
+    arc_date, arc_cadence = [], []
     for entry in cadence:
-        a.append(entry[0])
-        b.append(entry[1])
+        arc_date.append(entry[0])
+        arc_cadence.append(entry[1])
+
+    # Plots
+    plt.bar(dt_centers, counts, width=widths, align="center")
+    plt.plot(archive_counter.keys(), archive_counter.values(), 'k.', label='Count per archived day')
+    plt.xlabel("Archived Date")
+    plt.ylabel(f"Count per {bdays} days (blue) / count per archived day (black)")
+    plt.tight_layout()
+    plt.show()
+
     plt.figure()
-    plt.plot(a, b, '.')
+    plt.plot(arc_date, arc_cadence, '.')
     plt.xlabel("Archived Date")
     plt.ylabel("Cadence (days)")
     plt.tight_layout()
