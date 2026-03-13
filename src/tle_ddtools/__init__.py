@@ -29,7 +29,7 @@ FIELDS = {  # mapping from Skyfield Satrec field names to friendlier names, not 
     'no_kozai': 'mean_motion_rad_per_min',
     'revnum': 'revolution_number_at_epoch'
 }
-TT_UT_OFFSET = 69.183936
+
 EPOCH_FACTOR = 100.0
 REMAP_S = ["name", "intldesg", "classification", "ephtype"]
 REMAP_TLE = { # arcmjdf/modf are extra fields for dating TLE archival dates (see tle_parser documentation for details)

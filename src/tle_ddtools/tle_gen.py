@@ -5,7 +5,7 @@ Read in an npz file and generate a TLE file based on provided epoch.
 """
 from . import S0, L1, L2
 from .tle_utils import mjd_to_dt, readdataz, mjd_to_dt, dt_to_mjd
-from .tle_parser import get_times, write_tles_to_file
+from .tle_parser import get_times, write_tles_to_file, npzs_to_tle
 from datetime import datetime, timedelta
 
 
@@ -54,7 +54,7 @@ def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=Fals
 
     fnd = {}
     for satID, tle_dict in data.items():
-        launch_year = int(tle_dict['S'][S0['intl_desg']][0:2].strip())
+        launch_year = int(tle_dict['S'][S0['intldesg']][0:2].strip())
         if launch_year < 50:
             launch_year += 2000
         else:
@@ -73,36 +73,14 @@ def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=Fals
                 closest = {'delta': delta, 'key': epoch_key, 'archived': archived_dt}
         this_span = closest['archived'] - epoch_search_dt
         key = closest['key']
-        offset_from_epoch = tle_dict[key][0][L2['revolution_number_at_epoch']] / tle_dict[key][1][L2['mean_motion_rev_per_day']]  # days
-        if offset_warning is not None and offset_from_epoch > offset_warning:
-            print(f"Note: offset from epoch is greater than {offset_warning} days: {offset_from_epoch:.2f}d")
+        #offset_from_epoch = tle_dict[key][0][L2['revolution_number_at_epoch']] / tle_dict[key][1][L2['mean_motion_rev_per_day']]  # days
+        #if offset_warning is not None and offset_from_epoch > offset_warning:
+        #    print(f"Note: offset from epoch is greater than {offset_warning} days: {offset_from_epoch:.2f}d")
         if abs(this_span) <= span_timedelta:
-            print("THIS IS WHERE I LEFT OFF!!!!!")
             print(f"Found {tle_dict['S'][S0['name']]} -- {satID} at {closest['archived'].isoformat()} ({this_span.total_seconds() / (3600):.3f}h)")
             tle_data = tle_dict[closest['key']]
-            international_designator = {
-                "year": tle_dict['S'][S0['international_designator']][0:2].strip(),
-                "launch_number": tle_dict['S'][S0['international_designator']][2:5].strip(),
-                "piece": tle_dict['S'][S0['international_designator']][5:8].strip()
-            }
-            fnd[satID] = {"name": tle_dict['S'][S0['name']],
-                          "fields": {"satellite_number": satID,
-                                     "international_designator": international_designator,
-                                     "classification": tle_dict['S'][S0['classification']],
-                                     "ephemeris_type": tle_dict['S'][S0['ephemeris_type']]
-                                    }
-                        }
-            for k, i in L1.items():
-                if k in ['arcdoy', 'arcmodf']:  # These are the extra ones.
-                    continue
-                if k == 'epochmodf':
-                    fnd[satID]['fields']['epoch'] = f"{tle_data[0][i]:.8f}"
-                elif k == 'element_set_number':
-                    fnd[satID]['fields'][k] = int(tle_data[0][i])
-                else:
-                    fnd[satID]['fields'][k] = float(tle_data[0][i])
-            for k, i in L2.items():
-                fnd[satID]['fields'][k] = float(tle_data[1][i])
+            fnd[satID] = npzs_to_tle({satID: tle_dict}, closest['key'], satID=satID)[satID]
+
     if return_found:
         return fnd
     esr = f"{float(epoch_search):.3f}".replace('.', '_')

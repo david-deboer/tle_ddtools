@@ -102,7 +102,6 @@ def read_tle_files(archived='now', tle_files='*.tle', base_path='./tle'):
         tle_files = glob(join(base_path, tle_files))
     sats = {}
     for f in tle_files:
-        print(f"Reading {f}")
         this_data = skyfield_load.tle_file(f)
         for this_sat in this_data:
             # key = f"{this_sat.model.satnum}:{this_sat.model.intldesg}"

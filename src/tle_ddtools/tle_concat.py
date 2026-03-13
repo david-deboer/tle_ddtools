@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from numpy import array
+import numpy as np
+import matplotlib.pyplot as plt
 from . import EPOCH_FACTOR, S0
 from .tle_utils import readdataz, mjd_to_dt, tuple_to_epoch
 
@@ -101,35 +102,66 @@ def summary(filename):
     Print a summary of the TLE data in the given .npz file, including the distribution of epoch counts per satID.
     """
     data = readdataz(filename)
-    limits = data.get('lim', (None, None))
-    data = data.get('data', {})
     print(f"Summary of {filename}:")
-    print(f"Total unique satIDs: {len(data)}")
-    print("Epoch limits:", limits)
-    cnt_epochs = []
+    print(f"Total unique satIDs: {len(data['data'])}")
+    print("Epoch limits:", data['lim'])
     list_epochs = []
-    for satID, tle_dict in data.items():
-        num_epochs = len([k for k in tle_dict if k != 'S'])
-        cnt_epochs.append(num_epochs)
+    for satID, tle_dict in data['data'].items():
         list_epochs.extend([tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
-        # if num_epochs > 10:
-        #     print(f"{tle_dict['S'][0]} ({satID}): {num_epochs} epochs")
+    # Choose bins: either an int (# of bins) or explicit edges (array)
+    bdays = 7
+    bins = int((list_epochs[-1] - list_epochs[0]) / bdays) + 1  # One bin per day, from min to max epoch
 
-    hist_epochs = list(range(min(cnt_epochs), max(cnt_epochs) + 1, 1))
-    print(f"Average epochs per satID: {sum(cnt_epochs)/len(cnt_epochs):.2f} -- max {max(cnt_epochs)}")
-    print("Epoch distribution:")
-    for i in range(len(hist_epochs) - 1):
-        count = sum(1 for n in cnt_epochs if hist_epochs[i] <= n < hist_epochs[i + 1])
-        print(f"  {hist_epochs[i]}-{hist_epochs[i + 1]}: {count}")
-    import matplotlib.pyplot as plt
-    plt.hist(cnt_epochs, bins=hist_epochs, edgecolor='black')
-    plt.title('Distribution of Epoch Counts per SatID')
-    plt.xlabel('Number of Epochs')
-    plt.ylabel('Count of SatIDs')
-    # plt.xticks(hist_epochs)
-    plt.grid(axis='y', alpha=0.75)
-    plt.figure()
-    y = list(range(len(list_epochs)))
-    plt.plot(array(list_epochs)/1000, y, '.')
+    counts, edges = np.histogram(list_epochs, bins=bins)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    dt_centers = [mjd_to_dt(epoch) for epoch in centers]
+    widths = np.diff(edges)
+
+    sepo = sorted(list_epochs)
+
+    cadence = [(i, float(epoch)) for i, epoch in enumerate(np.diff(sepo))]
+
+    le, ca = [], []
+    pv = -5
+    from copy import copy
+    for x in cadence:
+        dx = x[1] - pv
+        if dx > 0:
+            le.append(list_epochs[x[0]])
+            ca.append(x[1])
+        pv = copy(x[1])
+    ledt = [mjd_to_dt(epoch) for epoch in le]
+
+    # Plot as bars (histogram-style)
+    plt.bar(dt_centers, counts, width=widths, align="center")
+    plt.xlabel("Date")
+    plt.ylabel(f"Count per {bdays} days")
+    plt.tight_layout()
     plt.show()
-    return list_epochs
+
+    plt.figure()
+    plt.plot(ledt, ca, '.', alpha=0.5)
+    plt.xlabel("Date")
+    plt.ylabel("Cadence (days)")
+    plt.tight_layout()
+    plt.show()
+
+    # hist_epochs = list(range(min(cnt_epochs), max(cnt_epochs) + 1, 1))
+    # print(f"Average epochs per satID: {sum(cnt_epochs)/len(cnt_epochs):.2f} -- max {max(cnt_epochs)}")
+    # print("Epoch distribution:")
+    # for i in range(len(hist_epochs) - 1):
+    #     count = sum(1 for n in cnt_epochs if hist_epochs[i] <= n < hist_epochs[i + 1])
+    #     # print(f"  {hist_epochs[i]}-{hist_epochs[i + 1]}: {count}")
+    # import matplotlib.pyplot as plt
+    # #plt.hist(cnt_epochs, bins=hist_epochs, edgecolor='black')
+    # dt_list = [mjd_to_dt(epoch/1000.0) for epoch in list_epochs]
+    # plt.title('Distribution of Epoch Counts per SatID')
+    # plt.xlabel('Number of Epochs')
+    # plt.ylabel('Count of SatIDs')
+    # # plt.xticks(hist_epochs)
+    # plt.grid(axis='y', alpha=0.75)
+    # plt.figure()
+    # y = list(range(len(list_epochs)))
+    # plt.plot(dt_list, y, '.')
+    # plt.show()
+    # return list_epochs
