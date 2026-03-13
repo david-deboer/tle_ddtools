@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from . import EPOCH_FACTOR, S0
 from .tle_utils import readdataz, mjd_to_dt, tuple_to_epoch
-
+from numpy import floor
 
 
 def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cleanup=False):
@@ -104,64 +104,54 @@ def summary(filename):
     data = readdataz(filename)
     print(f"Summary of {filename}:")
     print(f"Total unique satIDs: {len(data['data'])}")
-    print("Epoch limits:", data['lim'])
+    print("Epoch limits:", [x.isoformat() for x in data['lim']])
     list_epochs = []
+    _archive_counter = {}
     for satID, tle_dict in data['data'].items():
-        list_epochs.extend([tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S'])
+        archived = [tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S']
+        list_epochs.extend(archived)
+        for entry in archived:
+            key = int(floor(entry))
+            _archive_counter.setdefault(key, 0)
+            _archive_counter[key] += 1
+
+    sorted_archive_mjd = sorted(_archive_counter.keys())
+    archive_counter = {mjd_to_dt(key): _archive_counter[key] for key in sorted_archive_mjd}
+    keys = list(archive_counter.keys())
+
     # Choose bins: either an int (# of bins) or explicit edges (array)
     bdays = 7
-    bins = int((list_epochs[-1] - list_epochs[0]) / bdays) + 1  # One bin per day, from min to max epoch
+    bins = int((list_epochs[-1] - list_epochs[0]) / bdays) + 1
 
     counts, edges = np.histogram(list_epochs, bins=bins)
     centers = 0.5 * (edges[:-1] + edges[1:])
     dt_centers = [mjd_to_dt(epoch) for epoch in centers]
     widths = np.diff(edges)
 
-    sepo = sorted(list_epochs)
-
-    cadence = [(i, float(epoch)) for i, epoch in enumerate(np.diff(sepo))]
-
-    le, ca = [], []
-    pv = -5
-    from copy import copy
-    for x in cadence:
-        dx = x[1] - pv
-        if dx > 0:
-            le.append(list_epochs[x[0]])
-            ca.append(x[1])
-        pv = copy(x[1])
-    ledt = [mjd_to_dt(epoch) for epoch in le]
-
     # Plot as bars (histogram-style)
     plt.bar(dt_centers, counts, width=widths, align="center")
-    plt.xlabel("Date")
+    plt.xlabel("Archived Date")
     plt.ylabel(f"Count per {bdays} days")
     plt.tight_layout()
     plt.show()
 
     plt.figure()
-    plt.plot(ledt, ca, '.', alpha=0.5)
-    plt.xlabel("Date")
+    plt.plot(archive_counter.keys(), archive_counter.values(), '.')
+    plt.xlabel("Archived Date")
+    plt.ylabel(f"Count per archived day")
+    plt.tight_layout()
+    plt.show()
+
+    cadence = [(keys[i], float(epoch)) for i, epoch in enumerate(np.diff(sorted_archive_mjd))]
+    a, b = [], []
+    for entry in cadence:
+        a.append(entry[0])
+        b.append(entry[1])
+    plt.figure()
+    plt.plot(a, b, '.')
+    plt.xlabel("Archived Date")
     plt.ylabel("Cadence (days)")
     plt.tight_layout()
     plt.show()
 
-    # hist_epochs = list(range(min(cnt_epochs), max(cnt_epochs) + 1, 1))
-    # print(f"Average epochs per satID: {sum(cnt_epochs)/len(cnt_epochs):.2f} -- max {max(cnt_epochs)}")
-    # print("Epoch distribution:")
-    # for i in range(len(hist_epochs) - 1):
-    #     count = sum(1 for n in cnt_epochs if hist_epochs[i] <= n < hist_epochs[i + 1])
-    #     # print(f"  {hist_epochs[i]}-{hist_epochs[i + 1]}: {count}")
-    # import matplotlib.pyplot as plt
-    # #plt.hist(cnt_epochs, bins=hist_epochs, edgecolor='black')
-    # dt_list = [mjd_to_dt(epoch/1000.0) for epoch in list_epochs]
-    # plt.title('Distribution of Epoch Counts per SatID')
-    # plt.xlabel('Number of Epochs')
-    # plt.ylabel('Count of SatIDs')
-    # # plt.xticks(hist_epochs)
-    # plt.grid(axis='y', alpha=0.75)
-    # plt.figure()
-    # y = list(range(len(list_epochs)))
-    # plt.plot(dt_list, y, '.')
-    # plt.show()
-    # return list_epochs
+
