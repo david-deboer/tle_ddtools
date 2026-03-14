@@ -31,27 +31,27 @@ FIELDS = {  # mapping from Skyfield Satrec field names to friendlier names, not 
 }
 
 EPOCH_FACTOR = 100.0
-REMAP_S = ["name", "intldesg", "classification", "ephtype"]
-REMAP_TLE = { # arcmjdf/modf are extra fields for dating TLE archival dates (see tle_parser documentation for details)
+TAZ_S = ["name", "intldesg", "classification", "ephtype"]
+TAZ_E = { # arcmjdf/modf are extra fields for dating TLE archival dates (see tle_parser documentation for details)
     'line1': ["arcmjdf", "arcmodf", "epochmodf", "ndot",    "nddot", "bstar",    "elnum"], 
     'line2': ["inclo",   "nodeo",   "ecco",       "argpo",  "mo",    "no_kozai", "revnum"]
 }
 
-# The .npz structure is:
+# The TLE archive npz (TAZ) structure is:
 #
 # {NORAD_ID_INT: 
 #   {
-#     'S': {<REMAP_S>},
-#      <EPOCH1_INT>: [<REMAP_TLE>['line1'],['line2']],  # Stored as float32
+#     'S': {<TAZ_S>},
+#      <EPOCH1_INT>: [<TAZ_E>['line1'],['line2']],  # Stored as float32
 #      <EPOCH2_INT>: [ " ], ...
 #   }
 #
 # EPOCHN is int(floor(EPOCH_FACTOR * epoch_mjd))  epochmodf is the fractional part of EPOCHN
 # arcmodf, arcmjdf = modf(EPOCH_FACTOR * archived_mjd)
 
-S0 = {k: i for i, k in enumerate(REMAP_S)}
-L1 = {k: i for i, k in enumerate(REMAP_TLE['line1'])}
-L2 = {k: i for i, k in enumerate(REMAP_TLE['line2'])}
+S0 = {k: i for i, k in enumerate(TAZ_S)}
+L1 = {k: i for i, k in enumerate(TAZ_E['line1'])}
+L2 = {k: i for i, k in enumerate(TAZ_E['line2'])}
 
 def return_ind(s):
     if s in S0:

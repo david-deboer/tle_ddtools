@@ -37,7 +37,7 @@
 #     no_kozai    - mean motion (radians/minute)
 #     nodeo       - right ascension of ascending node (radians)
 
-from . import REMAP_S, REMAP_TLE, FIELDS
+from . import TAZ_S, TAZ_E, FIELDS
 from .tle_utils import mjd_to_dt, tuple_to_epoch, epoch_to_tuple, mjd_to_dt
 from sgp4.api import Satrec, WGS72
 from skyfield.api import EarthSatellite, load
@@ -122,18 +122,18 @@ def get_times(key, entry):
         tle_epoch (mjd)
 
     """
-    tle_epoch = tuple_to_epoch((key, entry[0][REMAP_TLE['line1'].index('epochmodf')]))
-    archived = tuple_to_epoch((entry[0][REMAP_TLE['line1'].index('arcmjdf')], entry[0][REMAP_TLE['line1'].index('arcmodf')]))
+    tle_epoch = tuple_to_epoch((key, entry[0][TAZ_E['line1'].index('epochmodf')]))
+    archived = tuple_to_epoch((entry[0][TAZ_E['line1'].index('arcmjdf')], entry[0][TAZ_E['line1'].index('arcmodf')]))
     return tle_epoch, archived
 
-def npzs_to_tle(satz, entry, satID=None):
+def taz_to_tle(satz, entry, satID=None):
     """
-    Remap input from an npz file to the format from the read_tle_files.
+    Remap input from a taz file to the format from the read_tle_files.
 
     Parameters
     ----------
     satz : dict
-        The data dict as read from the .npz file, structured as {satID: {'S': [...], epoch_key: array([...])}}
+        The data dict as read from the taz file, structured as {satID: {'S': [...], epoch_key: array([...])}}
     entry : int
         The epoch key to extract from the data dict for the given satID (not all satID may have it)
     satID : int or None
@@ -153,22 +153,22 @@ def npzs_to_tle(satz, entry, satID=None):
             print(f"Warning:  satID {satID} does not have entry {entry} -- skipping")
             continue
         remapped[satID] = {}
-        for Skey in REMAP_S:
-            v = data['S'][REMAP_S.index(Skey)]
+        for Skey in TAZ_S:
+            v = data['S'][TAZ_S.index(Skey)]
             remapped[satID][Skey] = v
         epoch_jd, archived = get_times(entry, data[entry])
         remapped[satID]['epoch_jd'] = epoch_jd + 2400000.5  # Convert back to JD
         remapped[satID]['archived'] = mjd_to_dt(archived)
         remapped[satID]['satnum'] = int(satID)
 
-        for idx, field in enumerate(REMAP_TLE['line1']):
+        for idx, field in enumerate(TAZ_E['line1']):
             if field in ['arcmjdf', 'arcmodf', 'epochmodf']:
                 continue  # These are used to reconstruct the epoch, not individual fields
             if field == 'elnum':
                 remapped[satID][field] = int(data[entry][0][idx])  # elnum is an integer
             else:
                 remapped[satID][field] = float(data[entry][0][idx])
-        for idx, field in enumerate(REMAP_TLE['line2']):
+        for idx, field in enumerate(TAZ_E['line2']):
             if field == 'revnum':
                 remapped[satID][field] = int(data[entry][1][idx])  # revnum is an integer
             else:
@@ -176,11 +176,11 @@ def npzs_to_tle(satz, entry, satID=None):
 
     return remapped
 
-def tles_to_npz(sats, satID=None):
+def tles_to_taz(sats, satID=None):
     """
     Remap TLE data from read_tle_files() into a different structure that can track over time.
 
-    See REMAP_S and REMAP_EPOCH for the specific fields included in "S" and the epoch_key arrays.
+    See TAZ_S and REMAP_EPOCH for the specific fields included in "S" and the epoch_key arrays.
     The epoch_key is derived from the epoch by taking the integer part of (epoch * EPOCH_FACTOR), which allows grouping TLEs by epoch while retaining the fractional part in the array.
 
     Parameter
@@ -206,15 +206,15 @@ def tles_to_npz(sats, satID=None):
             print(f"Error:  satID {satID} does not match satnum {data['satnum']} -- skipping")
             continue
         remapped[satID] = {'S': []}
-        for Skey in REMAP_S:  # Use loop to ensure correct order
+        for Skey in TAZ_S:  # Use loop to ensure correct order
             v = data.get(Skey)
             remapped[satID]['S'].append(v)
         arcmodf, arcmjdf = epoch_to_tuple(data['archived'])
         epochmodf, epoch_key = epoch_to_tuple(data['epoch_jd'])
         lines = []
-        for ll in sorted(REMAP_TLE.keys()):  # line1, line2
+        for ll in sorted(TAZ_E.keys()):  # line1, line2
             aline = []
-            for f in REMAP_TLE[ll]:
+            for f in TAZ_E[ll]:
                 if f == 'arcmjdf':
                     aline.append(arcmjdf)
                 elif f == 'arcmodf':

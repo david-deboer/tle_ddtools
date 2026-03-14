@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
 from math import modf
-from numpy import array
-from . import EPOCH_FACTOR, S0
+from . import EPOCH_FACTOR
 from astropy.time import Time
 
 
 def savedataz(data, filename='tle*.npz'):
     """
-    Save TLE data (output of tle_parser.tles_to_npz) to a .npz file.
+    Save TLE data (output of tle_parser.tles_to_taz) to a taz file.
 
     """
     from numpy import savez, floor
@@ -32,12 +31,12 @@ def savedataz(data, filename='tle*.npz'):
 
 def readdataz(filename):
     """
-    Read TLE data from a .npz file saved by savedataz.
+    Read TLE data from a taz file saved by savedataz.
 
     Parameters
     ----------
     filename : str
-        The path to the .npz file to read.
+        The path to the taz file to read.
 
     """
     from numpy import load
@@ -100,8 +99,6 @@ def dt_to_mjd(dt, scale='mjd'):
 
     """
     T = Time(dt)
-    mjd = float(T.mjd)
-    jd = float(T.jd)
     v = float(T.mjd) if scale == 'mjd' else float(T.jd)
     return v
     # JD = 367 * Y - (7 * (Y + ((M + 9) // 12))) // 4 + (275 * M) // 9 + D + 1721013.5 + (h + m / 60 + s / 3600) / 24

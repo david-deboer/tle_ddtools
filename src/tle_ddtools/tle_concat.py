@@ -8,7 +8,7 @@ from numpy import floor
 
 def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cleanup=False):
     """
-    Concatenate multiple .npz files into a single .npz file, merging data by satID and epoch keys.
+    Concatenate multiple taz files into a single taz file, merging data by satID and epoch keys.
 
     All I/O is 'join'ed with base_dir.
     If 'starter' is a str, it will use the file contents as the starter.
@@ -16,7 +16,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
     The data are added to the starter dict, which is then saved to output_file. The input files are expected to be in base_dir and match the pattern 'tle*.npz'.
      - Each input file should contain a dict of satIDs, where each satID maps to another dict of epoch keys (e.g., '2023-01-01T00:00:00') and their corresponding TLE data.
      - The function merges the TLE data for each satID across all files, ensuring that if the same epoch key exists in multiple files for the same satID, the last one read will take precedence.
-     - The final merged data is saved to output_file in .npz format.
+     - The final merged data is saved to output_file in taz format.
      - The function also prints a summary of the concatenation process, including the number of files processed and the number of unique satIDs in the final output.
      - Note: The starter dict can be used to provide an initial set of data that will be merged with the data from the input files. If not needed, it can be left as an empty dict.
 
@@ -98,7 +98,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
 
 
 def summary(filename):
-    """Print/plot a summary of the TLE data in the given .npz file."""
+    """Print/plot a summary of the TLE data in the given taz file."""
     data = readdataz(filename)
     print(f"Summary of {filename}:")
     print(f"Total unique satIDs: {len(data['data'])}")
