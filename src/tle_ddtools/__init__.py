@@ -37,6 +37,18 @@ REMAP_TLE = { # arcmjdf/modf are extra fields for dating TLE archival dates (see
     'line2': ["inclo",   "nodeo",   "ecco",       "argpo",  "mo",    "no_kozai", "revnum"]
 }
 
+# The .npz structure is:
+#
+# {NORAD_ID_INT: 
+#   {
+#     'S': {<REMAP_S>},
+#      <EPOCH1_INT>: [<REMAP_TLE>['line1'],['line2']],  # Stored as float32
+#      <EPOCH2_INT>: [ " ], ...
+#   }
+#
+# EPOCHN is int(floor(EPOCH_FACTOR * epoch_mjd))  epochmodf is the fractional part of EPOCHN
+# arcmodf, arcmjdf = modf(EPOCH_FACTOR * archived_mjd)
+
 S0 = {k: i for i, k in enumerate(REMAP_S)}
 L1 = {k: i for i, k in enumerate(REMAP_TLE['line1'])}
 L2 = {k: i for i, k in enumerate(REMAP_TLE['line2'])}
