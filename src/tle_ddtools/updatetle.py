@@ -21,6 +21,21 @@ def make_tle_filename(tle_name):
 
 
 def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/NORAD/elements/', archived=None):
+    """
+    This pulls all of the TLE files from Celestrack and writes them to the base_path, then parses them and returns the data as a dict.
+    If archived is provided, it will be used as the epoch for archiving the TLEs in the output data.  If archived is None, it will use the current time.
+
+    Parameters
+    ----------
+    group : str, optional
+        The group to search for in the Celestrak TLE files (default: '*', which matches all groups).
+    base_path : str, optional
+        The base path to save the TLE files to (default: './tle').
+    base_url : str, optional
+        The base URL to fetch the TLE files from (default: 'https://celestrak.org/NORAD/elements/').
+    archived : datetime or None, optional
+        The epoch to use for archiving the TLEs in the output data. If None, it will use the current time (default: None).
+    """
     if archived is None:
         archived = dt_to_mjd(datetime.now())
     if group == '*':
@@ -52,7 +67,20 @@ def updatetle_web(group='*', base_path='./tle', base_url='https://celestrak.org/
                 f.write(tle_file.text)
     return tle_parser.tles_to_taz(tle_parser.read_tle_files(archived=archived, tle_files=found_files, base_path=base_path))
 
+
 def updatetle_dir(base_path='./tle', archived=None):
+    """
+    This reads all of the TLE files from the base_path, then parses them and returns the data as a dict.
+    If archived is provided, it will be used as the epoch for archiving the TLEs in the output data.  If archived is None, it will use the current time.
+
+    Parameters
+    ----------
+    base_path : str, optional
+        The base path to read the TLE files from (default: './tle').
+    archived : datetime or None, optional
+        The epoch to use for archiving the TLEs in the output data. If None, it will use the current time (default: None).
+
+    """
     if archived is None:
         archived = dt_to_mjd(datetime.now())
     from os.path import join
