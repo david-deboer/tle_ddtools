@@ -71,7 +71,7 @@ def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=Fals
         if abs(this_span) <= span_timedelta:
             print(f"Found {tle_dict['S'][S0['name']]} -- {satID} at {closest['archived'].isoformat()} ({this_span.total_seconds() / (3600):.3f}h)")
             tle_data = tle_dict[closest['key']]
-            fnd[satID] = taz_to_tle({satID: tle_dict}, closest['key'], satID=satID)[satID]
+            fnd[satID] = taz_to_tld({satID: tle_dict}, closest['key'], satID=satID)[satID]
 
     if return_found:
         return fnd

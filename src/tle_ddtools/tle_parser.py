@@ -38,7 +38,7 @@
 #     nodeo       - right ascension of ascending node (radians)
 
 from . import TAZ_S, TAZ_E, FIELDS
-from .tle_utils import mjd_to_dt, tuple_to_epoch, epoch_to_tuple, mjd_to_dt, get_times
+from .tle_utils import mjd_to_dt, epoch_to_tuple, mjd_to_dt, get_times
 from sgp4.api import Satrec, WGS72
 from skyfield.api import EarthSatellite, load
 from sgp4.exporter import export_tle
@@ -59,13 +59,17 @@ def write_tlds_to_file(tlds, filename='output.tle'):
 
     """
     with open(filename, 'w') as f:
-        for satnum, tld in tlds.items():
+        for tld in tlds.values():
             f.write(TLE_from_EarthSatellite(EarthSatellite_from_tld(tld)))
 
 
 def TLE_from_EarthSatellite(esat):
     """
     Create a TLE string from a Skyfield EarthSatellite object, as given in EarthSatellite_from_dict() below.
+
+    Parameter
+    ---------
+    esat : sgp4init object
  
     """
     line1, line2 = export_tle(esat.model)
@@ -79,7 +83,7 @@ def EarthSatellite_from_tld(tld):
 
     Parameters
     ----------
-    sats : dict
+    tld : dict
         A dict in the tld format
     
     """
@@ -87,29 +91,44 @@ def EarthSatellite_from_tld(tld):
     satrec.sgp4init(
         WGS72,            # WGS72
         'i',              # opsmode 'i' for improved accuracy (vs 'a' for old SGP4)
-        sat['satnum'],      # satellite number (NORAD catalog ID)
-        sat['epoch_jd'] - 2433281.5,    # Julian date epoch from 1949-12-31 00:00:00 UTC (SGP4 uses this offset)
-        sat['bstar'],       # bstar drag term
-        sat['ndot'],        # ndot (rev/day^2)
-        sat['nddot'],       # nddot (rev/day^3)
-        sat['ecco'],        # eccentricity
-        sat['argpo'],       # argument of perigee (rad)
-        sat['inclo'],       # inclination (rad)
-        sat['mo'],          # mean anomaly (rad)
-        sat['no_kozai'],    # mean motion (rev/day)
-        sat['nodeo']        # right ascension of ascending node (rad)
+        tld['satnum'],      # satellite number (NORAD catalog ID)
+        tld['epoch_jd'] - 2433281.5,    # Julian date epoch from 1949-12-31 00:00:00 UTC (SGP4 uses this offset)
+        tld['bstar'],       # bstar drag term
+        tld['ndot'],        # ndot (rev/day^2)
+        tld['nddot'],       # nddot (rev/day^3)
+        tld['ecco'],        # eccentricity
+        tld['argpo'],       # argument of perigee (rad)
+        tld['inclo'],       # inclination (rad)
+        tld['mo'],          # mean anomaly (rad)
+        tld['no_kozai'],    # mean motion (rev/day)
+        tld['nodeo']        # right ascension of ascending node (rad)
     )
-    satrec.classification = sat.get("classification", "U")
-    satrec.intldesg = sat.get("intldesg", "")
-    satrec.elnum = sat.get("elnum", 0)
-    satrec.revnum = sat.get("revnum", 0)
+    satrec.classification = tld.get("classification", "U")
+    satrec.intldesg = tld.get("intldesg", "")
+    satrec.elnum = tld.get("elnum", 0)
+    satrec.revnum = tld.get("revnum", 0)
 
     ts = load.timescale()
     esat = EarthSatellite.from_satrec(satrec, ts)
-    esat.name = sat.get("name", "NULL")
+    esat.name = tld.get("name", "NULL")
     return esat
 
+
 def read_tle_files(archived='now', tle_files='*.tle', base_path='./tle'):
+    """
+    Generate a tle dict (tld) from standard TLE files from e.g. Celestrak
+
+    Parameters
+    ----------
+    archived : "now" or datetime
+        Date of when the TLE files were read.
+    tle_files : str or list
+        glob str or list of filenames
+    base_path : str
+        base path for glob str (not applied if list)
+
+
+    """
     from glob import glob
     from skyfield.api import load as skyfield_load
     if archived == 'now':

@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
-from . import EPOCH_FACTOR, S0
 from .tle_utils import readdataz, mjd_to_dt, tuple_to_epoch
 from numpy import floor
+from glob import glob
+from os.path import join
+from os.path import getsize
 
 
 def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cleanup=False):
@@ -21,10 +23,6 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
      - Note: The starter dict can be used to provide an initial set of data that will be merged with the data from the input files. If not needed, it can be left as an empty dict.
 
     """
-    from glob import glob
-    from os.path import join
-    from numpy import savez
-    from os.path import getsize
     if isinstance(globster, str):
         files = glob(join(base_dir, globster))
     elif isinstance(globster, list):
@@ -78,7 +76,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
     upper = datetime(upper.year, upper.month, upper.day).strftime('%y%m%d')  # Round up to next day
     if output_file is None:
         output_file = join(base_dir, f"T{lower}_{upper}.npz")
-    savez(output_file, data=starter, allow_pickle=True)
+    np.savez(output_file, data=starter, allow_pickle=True)
     print(f"Concatenated {len(files)} files into {output_file} onto previous {len(starter)} satIDs from {lower} - {upper}")
     if cleanup:
         if getsize(output_file) > maxsize:  # Only delete files if the output file size is bigger than the biggest, to avoid deleting everything in case of a bug

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from math import modf
-from . import EPOCH_FACTOR
+from . import EPOCH_FACTOR, TAZ_E
 from astropy.time import Time
 
 
