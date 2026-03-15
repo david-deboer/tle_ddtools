@@ -71,7 +71,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
         starter = data
         starter_is_file = False
 
-    lower = mjd_to_dt(limits[0])
+    #lower = mjd_to_dt(limits[0])
     lower = datetime(lower.year, lower.month, lower.day).strftime('%y%m%d')  # Round down to current day
     upper = mjd_to_dt(limits[1]) + timedelta(days=1)
     upper = datetime(upper.year, upper.month, upper.day).strftime('%y%m%d')  # Round up to next day
