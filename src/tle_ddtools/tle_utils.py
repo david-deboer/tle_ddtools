@@ -6,7 +6,7 @@ from astropy.time import Time
 
 def savedataz(data, filename='tle*.npz'):
     """
-    Save TLE data (output of tle_parser.tles_to_taz) to a taz file.
+    Save TLE data (output of tle_parser.tlds_to_taz) to a taz file.
 
     """
     from numpy import savez, floor
@@ -51,6 +51,20 @@ def readdataz(filename):
                 minarc = min(minarc, newarc)
                 maxarc = max(maxarc, newarc)
     return {'lim': (mjd_to_dt(minarc), mjd_to_dt(maxarc)), 'data': data}
+
+
+def get_times(key, entry):
+    """
+    Get the epoch times from a TLE entry, both the archived epoch and the TLE epoch.
+
+    Returns:
+        archived_epoch (mjd)
+        tle_epoch (mjd)
+
+    """
+    tle_epoch = tuple_to_epoch((key, entry[0][TAZ_E['line1'].index('epochmodf')]))
+    archived = tuple_to_epoch((entry[0][TAZ_E['line1'].index('arcmjdf')], entry[0][TAZ_E['line1'].index('arcmodf')]))
+    return tle_epoch, archived
 
 
 def epoch_to_tuple(epoch):

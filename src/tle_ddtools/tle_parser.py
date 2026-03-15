@@ -1,24 +1,24 @@
 ###############NEW STUFF BELOW USING SKYFIELD ##################
-    # Line 1:
-    #     satnum            (int)
-    #     classification    (str)
-    #     intldesg          (str)
-    #     epochyr           (int, 2-digit)
-    #     epochdays         (float)
-    #     ndot              (rev/day^2)
-    #     nddot             (rev/day^3)
-    #     bstar             (float)
-    #     ephtype           (int)
-    #     elnum             (int)
+# Line 1:
+#     satnum            (int)
+#     classification    (str)
+#     intldesg          (str)
+#     epochyr           (int, 2-digit)
+#     epochdays         (float)
+#     ndot              (rev/day^2)
+#     nddot             (rev/day^3)
+#     bstar             (float)
+#     ephtype           (int)
+#     elnum             (int)
 
-    # Line 2:
-    #     inclo             (deg)
-    #     nodeo             (deg)
-    #     ecco              (float)
-    #     argpo             (deg)
-    #     mo                (deg)
-    #     no_kozai          (rev/day)
-    #     revnum            (int)
+# Line 2:
+#     inclo             (deg)
+#     nodeo             (deg)
+#     ecco              (float)
+#     argpo             (deg)
+#     mo                (deg)
+#     no_kozai          (rev/day)
+#     revnum            (int)
 
 # Initialize the record from orbital elements.
 
@@ -38,7 +38,7 @@
 #     nodeo       - right ascension of ascending node (radians)
 
 from . import TAZ_S, TAZ_E, FIELDS
-from .tle_utils import mjd_to_dt, tuple_to_epoch, epoch_to_tuple, mjd_to_dt
+from .tle_utils import mjd_to_dt, tuple_to_epoch, epoch_to_tuple, mjd_to_dt, get_times
 from sgp4.api import Satrec, WGS72
 from skyfield.api import EarthSatellite, load
 from sgp4.exporter import export_tle
@@ -46,25 +46,42 @@ from numpy import array, float32
 from os.path import join
 
 
-def write_tles_to_file(sats, filename='output.tle'):
+def write_tlds_to_file(tlds, filename='output.tle'):
+    """
+    Write a list of satellites in tld format to a TLE file.
+
+    Parameters
+    ----------
+    tlds : dict
+        A dict in the tld format
+    filename : str, optional
+        The path to the output TLE file (default: 'output.tle').
+
+    """
     with open(filename, 'w') as f:
-        for satnum, sat in sats.items():
-            f.write(TLE_from_EarthSatellite(EarthSatellite_from_dict(sat)))
+        for satnum, tld in tlds.items():
+            f.write(TLE_from_EarthSatellite(EarthSatellite_from_tld(tld)))
 
 
-def TLE_from_EarthSatellite(sat):
+def TLE_from_EarthSatellite(esat):
     """
     Create a TLE string from a Skyfield EarthSatellite object, as given in EarthSatellite_from_dict() below.
  
     """
-    line1, line2 = export_tle(sat.model)
-    return f"{sat.name}\n{line1}\n{line2}\n"
+    line1, line2 = export_tle(esat.model)
+    return f"{esat.name}\n{line1}\n{line2}\n"
 
-def EarthSatellite_from_dict(sat):
+
+def EarthSatellite_from_tld(tld):
     """
     Create a Skyfield EarthSatellite object from a dict of fields as given in one entry of
     the output of read_tle_files() below.  Needed to rewrite the TLE file.
 
+    Parameters
+    ----------
+    sats : dict
+        A dict in the tld format
+    
     """
     satrec = Satrec()
     satrec.sgp4init(
@@ -105,28 +122,15 @@ def read_tle_files(archived='now', tle_files='*.tle', base_path='./tle'):
         this_data = skyfield_load.tle_file(f)
         for this_sat in this_data:
             # key = f"{this_sat.model.satnum}:{this_sat.model.intldesg}"
-            key = this_sat.model.satnum  # Use satnum as key (NORAD catalog ID)
-            epoch_jd = float(this_sat.model.jdsatepoch + this_sat.model.jdsatepochF)
+            key = int(this_sat.model.satnum)  # Use satnum as key (NORAD catalog ID)
+            epoch_jd = float(this_sat.model.jdsatepoch) + float(this_sat.model.jdsatepochF)
             sats[key] = {'name': this_sat.name, 'epoch_jd': epoch_jd, 'archived': archived}
             for k, v in FIELDS.items():
                 sats[key][k] = getattr(this_sat.model, k)  # Keep the Skyfield field names
     return sats
 
 
-def get_times(key, entry):
-    """
-    Get the epoch times from a TLE entry, both the archived epoch and the TLE epoch.
-
-    Returns:
-        archived_epoch (mjd)
-        tle_epoch (mjd)
-
-    """
-    tle_epoch = tuple_to_epoch((key, entry[0][TAZ_E['line1'].index('epochmodf')]))
-    archived = tuple_to_epoch((entry[0][TAZ_E['line1'].index('arcmjdf')], entry[0][TAZ_E['line1'].index('arcmodf')]))
-    return tle_epoch, archived
-
-def taz_to_tle(satz, entry, satID=None):
+def taz_to_tld(satz, entry, satID=None):
     """
     Remap input from a taz file to the format from the read_tle_files.
 
@@ -176,16 +180,17 @@ def taz_to_tle(satz, entry, satID=None):
 
     return remapped
 
-def tles_to_taz(sats, satID=None):
+def tlds_to_taz(tlds, satID=None):
     """
     Remap TLE data from read_tle_files() into a different structure that can track over time.
 
     See TAZ_S and REMAP_EPOCH for the specific fields included in "S" and the epoch_key arrays.
-    The epoch_key is derived from the epoch by taking the integer part of (epoch * EPOCH_FACTOR), which allows grouping TLEs by epoch while retaining the fractional part in the array.
+    The epoch_key is derived from the epoch by taking the integer part of (epoch * EPOCH_FACTOR), 
+    which allows grouping TLEs by epoch while retaining the fractional part in the array.
 
     Parameter
     ---------
-    sats : dict
+    tlds : dict
         The input TLE data as returned by read_tle_files(), structured as {satID: {'name': ..., 'epoch_jd': ..., 'archived': ..., 'bstar':
     satID : int or None
         If provided, it will assume that is the key to one entry in 'sats' or it will just use that satID if sats is in the above format.
@@ -199,7 +204,7 @@ def tles_to_taz(sats, satID=None):
 
     remapped = {}
     unk_ctr = 0
-    for satID, data in sats.items():
+    for satID, data in tlds.items():
         if satID in remapped:
             print(f"Warning:  satID {satID} is duplicated")
         if satID != data['satnum']:

@@ -3,17 +3,16 @@ Read in an npz file and generate a TLE file based on provided epoch.
 
 
 """
-from . import S0, L1, L2
-from .tle_utils import mjd_to_dt, readdataz, mjd_to_dt, dt_to_mjd
-from .tle_parser import get_times, write_tles_to_file, taz_to_tle
+from . import S0
+from .tle_utils import mjd_to_dt, readdataz, mjd_to_dt, dt_to_mjd, get_times
+from .tle_parser import write_tlds_to_file, taz_to_tld
 from datetime import datetime, timedelta
 
 
 
-def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=False, offset_warning=None):
+def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=False):
     """
     Generate TLE files for all records in the given taz file that have an epoch within span_days of epoch_search.
-    epoch_search should be in the 
 
     Parameters
     ----------
@@ -25,8 +24,6 @@ def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=Fals
         The number of days around epoch_search to include in the output TLE file (default: 7.0).
     return_found : bool, optional
         If True, return a dict of the found TLEs instead of writing to a file (default: False).
-    offset_warning : float, optional
-        If provided, print a warning if the offset from the epoch is greater than this number of days (default: None).
     
     """
     data = readdataz(filename)
@@ -81,6 +78,6 @@ def tle_file_from_epoch(epoch_search, filename, span_days=7.0, return_found=Fals
     taz = f"{float(epoch_search):.3f}".replace('.', '_')
     fn = f"tle_{taz}.tle"
     print(f"Writing {len(fnd)} TLEs to {fn}")
-    write_tles_to_file(fnd, fn)
+    write_tlds_to_file(fnd, fn)
     return fn
 
