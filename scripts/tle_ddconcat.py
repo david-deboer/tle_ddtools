@@ -10,4 +10,4 @@ ap.add_argument("-g", "--glob", help="Glob pattern to match .npz files for conca
 ap.add_argument("--cleanup", help="If set, original .npz files will be deleted after concatenation. Use with caution!", action="store_true")
 args = ap.parse_args()
 
-tle_concat(starter=args.starter, output_file=args.output, base_dir=args.directory, globster=args.glob, cleanup=args.cleanup)
+tle_concat.concatz(starter=args.starter, output_file=args.output, base_dir=args.directory, globster=args.glob, cleanup=args.cleanup)
