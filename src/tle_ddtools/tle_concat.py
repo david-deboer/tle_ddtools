@@ -8,6 +8,7 @@ from glob import glob
 from os.path import join
 from os.path import getsize
 from datetime import datetime
+from astropy.time import Time
 
 
 def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cleanup=False):
@@ -99,29 +100,38 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
             print(f"Output file {output_file} is too small ({getsize(output_file)} bytes), skipping cleanup to avoid deleting everything in case of a bug.")
 
 
-def analysis(filename, xkey='arc', ykey='epoch'):
-    data = readdataz(filename)
-    xy = [ [], [] ]
-    keys = [xkey, ykey]
-    for satID, tle_dict in data['data'].items():
-        if len(tle_dict) < 3:
-            continue
-        x, y = [], []
-        for epok, entry in tle_dict.items():
-            if epok == 'S':
+class Analysis:
+    def __init__(self, filename):
+        self.filename = filename
+        self.data = readdataz(filename)
+
+    def analyse(self, xkey='arc', ykey='epoch', time_after=None):
+        if time_after is not None:
+            time_after = Time(time_after).mjd
+        xy = [ [], [] ]
+        keys = [xkey, ykey]
+        plt.figure(f"{xkey},{ykey}")
+        for satID, tle_dict in self.data['data'].items():
+            if len(tle_dict) < 3:
                 continue
-            e, a = get_times(epok, entry)
-            for i in [0, 1]:
-                if keys[i] == 'arc':
-                    xy[i] = a
-                elif keys[i] == 'epoch':
-                    xy[i] = e
-                else:
-                    ind = return_ind(keys[i])
-                    xy[i] = entry[ind[0]][ind[1]]
-            x.append(xy[0])
-            y.append(xy[1])
-        plt.plot(x, y, '.')
+            x, y = [], []
+            for epok, entry in tle_dict.items():
+                if epok == 'S':
+                    continue
+                e, a = get_times(epok, entry)
+                if time_after is not None and time_after > a:
+                    continue
+                for i in [0, 1]:
+                    if keys[i] == 'arc':
+                        xy[i] = a
+                    elif keys[i] == 'epoch':
+                        xy[i] = e
+                    else:
+                        ind = return_ind(keys[i])
+                        xy[i] = entry[ind[0]][ind[1]]
+                x.append(xy[0])
+                y.append(xy[1])
+            plt.plot(x, y, '.')
 
 
 
