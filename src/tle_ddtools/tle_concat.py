@@ -6,6 +6,7 @@ from numpy import floor
 from glob import glob
 from os.path import join
 from os.path import getsize
+from datetime import datetime
 
 
 def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cleanup=False):
@@ -32,7 +33,7 @@ def concatz(starter={}, output_file=None, base_dir='.', globster='tle*.npz', cle
     else:
         raise ValueError("globster must be a string pattern or a list of file paths")
     data = {}
-    limits = [float('inf'), float('-inf')]
+    limits = [datetime(year=2030, month=12, day=31), datetime(year=2020, month=1, day=1)]
     success = []
     maxsize = 0
     for f in sorted(files):
