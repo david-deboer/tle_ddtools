@@ -133,56 +133,54 @@ class Analysis:
                 y.append(xy[1])
             plt.plot(x, y, '.')
 
+    def summary(self):
+        """Print/plot a summary of the TLE data in the given taz file."""
+        data = readdataz(self.filename)
+        print(f"Summary of {self.filename}:")
+        print(f"Total unique satIDs: {len(self.data['data'])}")
+        print("Epoch limits:", [x.isoformat() for x in self.data['lim']])
+        list_epochs = []
+        archive_mjd_counter = {}
+        for satID, tle_dict in self.data['data'].items():
+            archived = [tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S']
+            list_epochs.extend(archived)
+            for entry in archived:
+                key = int(floor(entry))
+                archive_mjd_counter.setdefault(key, 0)
+                archive_mjd_counter[key] += 1
 
+        sorted_archive_mjd = sorted(archive_mjd_counter.keys())
+        archive_counter = {mjd_to_dt(key): archive_mjd_counter[key] for key in sorted_archive_mjd}
+        keys = list(archive_counter.keys())
 
-def summary(filename):
-    """Print/plot a summary of the TLE data in the given taz file."""
-    data = readdataz(filename)
-    print(f"Summary of {filename}:")
-    print(f"Total unique satIDs: {len(data['data'])}")
-    print("Epoch limits:", [x.isoformat() for x in data['lim']])
-    list_epochs = []
-    archive_mjd_counter = {}
-    for satID, tle_dict in data['data'].items():
-        archived = [tuple_to_epoch((tle_dict[k][0][0], tle_dict[k][0][1])) for k in tle_dict if k != 'S']
-        list_epochs.extend(archived)
-        for entry in archived:
-            key = int(floor(entry))
-            archive_mjd_counter.setdefault(key, 0)
-            archive_mjd_counter[key] += 1
+        # Choose bins: either an int (# of bins) or explicit edges (array)
+        bdays = 7
+        bins = int((list_epochs[-1] - list_epochs[0]) / bdays) + 1
 
-    sorted_archive_mjd = sorted(archive_mjd_counter.keys())
-    archive_counter = {mjd_to_dt(key): archive_mjd_counter[key] for key in sorted_archive_mjd}
-    keys = list(archive_counter.keys())
+        counts, edges = np.histogram(list_epochs, bins=bins)
+        centers = 0.5 * (edges[:-1] + edges[1:])
+        dt_centers = [mjd_to_dt(epoch) for epoch in centers]
+        widths = np.diff(edges)
 
-    # Choose bins: either an int (# of bins) or explicit edges (array)
-    bdays = 7
-    bins = int((list_epochs[-1] - list_epochs[0]) / bdays) + 1
+        cadence = [(keys[i], float(epoch)) for i, epoch in enumerate(np.diff(sorted_archive_mjd))]
+        arc_date, arc_cadence = [], []
+        for entry in cadence:
+            arc_date.append(entry[0])
+            arc_cadence.append(entry[1])
 
-    counts, edges = np.histogram(list_epochs, bins=bins)
-    centers = 0.5 * (edges[:-1] + edges[1:])
-    dt_centers = [mjd_to_dt(epoch) for epoch in centers]
-    widths = np.diff(edges)
+        # Plots
+        plt.bar(dt_centers, counts, width=widths, align="center")
+        plt.plot(archive_counter.keys(), archive_counter.values(), 'k.', label='Count per archived day')
+        plt.xlabel("Archived Date")
+        plt.ylabel(f"Count per {bdays} days (blue) / count per archived day (black)")
+        plt.tight_layout()
+        plt.show()
 
-    cadence = [(keys[i], float(epoch)) for i, epoch in enumerate(np.diff(sorted_archive_mjd))]
-    arc_date, arc_cadence = [], []
-    for entry in cadence:
-        arc_date.append(entry[0])
-        arc_cadence.append(entry[1])
-
-    # Plots
-    plt.bar(dt_centers, counts, width=widths, align="center")
-    plt.plot(archive_counter.keys(), archive_counter.values(), 'k.', label='Count per archived day')
-    plt.xlabel("Archived Date")
-    plt.ylabel(f"Count per {bdays} days (blue) / count per archived day (black)")
-    plt.tight_layout()
-    plt.show()
-
-    plt.figure()
-    plt.plot(arc_date, arc_cadence, '.')
-    plt.xlabel("Archived Date")
-    plt.ylabel("Cadence (days)")
-    plt.tight_layout()
-    plt.show()
+        plt.figure()
+        plt.plot(arc_date, arc_cadence, '.')
+        plt.xlabel("Archived Date")
+        plt.ylabel("Cadence (days)")
+        plt.tight_layout()
+        plt.show()
 
 
